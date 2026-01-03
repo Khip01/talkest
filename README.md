@@ -1,6 +1,6 @@
 # talkest
 
-A new Flutter project.
+Talkest is a messaging platform featuring an embedded Flutter Web chat widget, Firebase-based authentication with Google Sign-In, real-time messaging, and push notifications for mobile clients.
 
 ## Getting Started
 
