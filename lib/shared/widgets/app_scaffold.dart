@@ -5,7 +5,7 @@ import 'package:talkest/app/theme/theme.dart';
 import 'package:talkest/shared/utils/utils.dart';
 
 class AppScaffold extends StatefulWidget {
-  final Widget body;
+  final Widget Function(BuildContext context, BoxConstraints constraints) body;
 
   const AppScaffold({super.key, required this.body});
 
@@ -24,8 +24,6 @@ class _AppScaffoldState extends State<AppScaffold> {
 
   @override
   Widget build(BuildContext context) {
-    final double scrHeight = MediaQuery.sizeOf(context).height;
-    final double scrWidth = MediaQuery.sizeOf(context).width;
     final themeProvider = Provider.of<ThemeProvider>(context);
     final currentMode = themeProvider.getThemeMode;
 
@@ -40,24 +38,28 @@ class _AppScaffoldState extends State<AppScaffold> {
           const SizedBox(width: 8),
         ],
       ),
-      body: Stack(
-        children: [
-          widget.body,
-          Padding(
-            padding: EdgeInsets.symmetric(
-              vertical: scrHeight / 8,
-              horizontal: scrWidth / 6,
-            ),
-            child: Align(
-              alignment: AlignmentGeometry.bottomCenter,
-              child: Text(
-                "Fun Fact!\n$funFact",
-                textAlign: TextAlign.center,
-                style: AppTextStyles.quote,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
+            children: [
+              widget.body(context, constraints),
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  vertical: constraints.maxHeight / 8,
+                  horizontal: constraints.maxWidth / 6,
+                ),
+                child: Align(
+                  alignment: AlignmentGeometry.bottomCenter,
+                  child: Text(
+                    "Fun Fact!\n$funFact",
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.quote,
+                  ),
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        }
       ),
     );
   }

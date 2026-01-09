@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
-import 'package:talkest/features/auth/pages/login_screen.dart';
-import 'package:talkest/features/auth/pages/register_screen.dart';
-import 'package:talkest/features/chat/pages/chat_screen.dart';
+import 'package:talkest/features/auth/screen/login_screen.dart';
+import 'package:talkest/features/auth/screen/register_screen.dart';
+import 'package:talkest/features/chat/screen/chat_screen.dart';
 
 final GoRouter router = GoRouter(
   initialLocation: '/login',
