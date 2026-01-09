@@ -1,39 +1,39 @@
 import 'package:flutter/material.dart';
-import 'package:talkest/app/theme/theme.dart';
 
 class CustomFilledButton extends StatelessWidget {
   final String text;
   final Function() onPressed;
-  Color backgroundColor;
-  double? minWidth;
+  final Color? backgroundColor;
+  final double? minWidth;
 
-  CustomFilledButton({
+  const CustomFilledButton({
     super.key,
     required this.onPressed,
     required this.text,
-    this.backgroundColor = AppColors.c_0_0_0,
+    this.backgroundColor,
     this.minWidth,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final defaultBackgroundColor = backgroundColor ?? theme.colorScheme.primary;
+
     return Container(
-      constraints: BoxConstraints(
-        minWidth: minWidth ?? 400 / 2,
-      ),
+      constraints: BoxConstraints(minWidth: minWidth ?? 400 / 2),
       child: FilledButton(
         onPressed: onPressed,
         style: FilledButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
-          ),
-          padding: EdgeInsets.symmetric(horizontal: 22, vertical: 18),
-          backgroundColor: backgroundColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+          backgroundColor: defaultBackgroundColor,
         ),
         child: Text(
           text,
           textAlign: TextAlign.center,
-          style: AppTextStyles.onSurfaceTextStyle,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: theme.colorScheme.onPrimary,
+          ),
         ),
       ),
     );

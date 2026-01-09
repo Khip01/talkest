@@ -4,7 +4,7 @@ import 'package:talkest/app/theme/theme.dart';
 import 'package:talkest/features/auth/widgets/column_wrapper.dart';
 import 'package:talkest/features/auth/widgets/custom_text_button.dart';
 import 'package:talkest/features/chat/widgets/row_wrapper.dart';
-import 'package:talkest/shared/widgets/base_screen_dummy_template.dart';
+import 'package:talkest/shared/widgets/app_scaffold.dart';
 import 'package:talkest/shared/widgets/custom_filled_button.dart';
 
 class ChatScreen extends StatelessWidget {
@@ -14,7 +14,7 @@ class ChatScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final double scrHeight = MediaQuery.sizeOf(context).height;
 
-    return BaseScreenDummyTemplate(
+    return AppScaffold(
       body: ColumnWrapper(
         spacing: 60,
         children: [
@@ -23,7 +23,7 @@ class ChatScreen extends StatelessWidget {
             height: scrHeight / 2,
             child: Text(
               "Here we are, on List Chat Screen! 🥂",
-              style: AppTextStyles.surfaceHeading3TextStyle,
+              style: AppTextStyles.titleMedium,
             ),
           ),
           RowWrapper(
@@ -36,9 +36,9 @@ class ChatScreen extends StatelessWidget {
               CustomTextButton(
                 text: "Logout",
                 minWidth: 0,
-                overlayColor: AppColors.c_156_42_42,
+                overlayColor: Theme.of(context).colorScheme.error,
                 onPressed: () => context.goNamed('login'),
-                textColor: AppColors.c_156_42_42,
+                textColor: Theme.of(context).colorScheme.error,
               ),
             ],
           ),

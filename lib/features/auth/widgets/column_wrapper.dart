@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 class ColumnWrapper extends StatelessWidget {
   final List<Widget> children;
-  double spacing;
+  final double spacing;
 
-  ColumnWrapper({super.key, this.spacing = 12, required this.children});
+  const ColumnWrapper({super.key, this.spacing = 12, required this.children});
 
   @override
   Widget build(BuildContext context) {
