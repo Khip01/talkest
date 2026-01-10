@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:talkest/app/provider/theme_provider.dart';
-import 'package:talkest/app/routes.dart';
 import 'package:talkest/app/theme/theme.dart';
 
 class TalkestApp extends StatelessWidget {
-  const TalkestApp({super.key});
+  final GoRouter router;
+
+  const TalkestApp({super.key, required this.router});
 
   @override
   Widget build(BuildContext context) {
@@ -13,10 +15,9 @@ class TalkestApp extends StatelessWidget {
       title: "Talkest",
       routerConfig: router,
       debugShowCheckedModeBanner: false,
-
       theme: lightTheme,
       darkTheme: darkTheme,
-      themeMode: Provider.of<ThemeProvider>(context).getThemeMode,
+      themeMode: context.watch<ThemeProvider>().getThemeMode,
     );
   }
 }

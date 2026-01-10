@@ -29,6 +29,13 @@
             {
               "client_id": "730361736768-0bp624scmuk8jibgeudphelr2idgnpl8.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "730361736768-8b86e3i7sqpkaav82pbv9n7vtb6ukd1p.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.khip.talkest"
+              }
             }
           ]
         }

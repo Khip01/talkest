@@ -2,15 +2,53 @@
 
 Talkest is a messaging platform featuring an embedded Flutter Web chat widget, Firebase-based authentication with Google Sign-In, real-time messaging, and push notifications for mobile clients.
 
-## Getting Started
+## Development Setup
 
-This project is a starting point for a Flutter application.
+### Prerequisites
+- Flutter SDK
+- Firebase project with Authentication enabled
+- Google OAuth 2.0 Client ID (Flutter Web Only)
 
-A few resources to get you started if this is your first Flutter project:
+### Getting OAuth 2.0 Client ID
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+1. **Via Firebase Console** (Recommended):
+   - Open [Firebase Console](https://console.firebase.google.com)
+   - Select your project → Project Settings
+   - Add Web app (if not already added)
+   - Client ID will be auto-generated in Google Cloud Console
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+2. **Manual Setup**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com)
+   - Navigate to **APIs & Services** → **Credentials**
+   - Create **OAuth client ID** → Select **Web application**
+   - Configure:
+     - **Authorized JavaScript origins**:
+       - `http://localhost`
+       - `http://localhost:5000`
+       - `https://your-domain.firebaseapp.com` (production)
+     - **Authorized redirect URIs**:
+       - `https://your-domain.firebaseapp.com/__/auth/handler`
+   - Copy the generated **Client ID**
+
+### Running the App
+
+**Web (Development):**
+```bash
+flutter run -d chrome --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_CLIENT_ID.apps.googleusercontent.com
+```
+
+**Mobile (Android/iOS):**
+```bash
+flutter run
+```
+
+**Building for Production:**
+```bash
+flutter build web --wasm --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_CLIENT_ID.apps.googleusercontent.com
+```
+
+## Resources
+
+- [Flutter Documentation](https://docs.flutter.dev/)
+- [Firebase Setup Guide](https://firebase.google.com/docs/flutter/setup)
+- [Google Sign-In for Flutter](https://pub.dev/packages/google_sign_in)
