@@ -1,6 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:talkest/app/theme/theme.dart';
+import 'package:talkest/features/auth/auth_repository.dart';
 import 'package:talkest/features/auth/widgets/column_wrapper.dart';
 import 'package:talkest/features/auth/widgets/custom_text_button.dart';
 import 'package:talkest/features/chat/widgets/row_wrapper.dart';
@@ -13,6 +15,7 @@ class ChatScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
+      showFunFactSection: false,
       body: (context, constraints) {
         return Center(
           child: ColumnWrapper(
@@ -33,7 +36,7 @@ class ChatScreen extends StatelessWidget {
                     text: "Logout",
                     minWidth: 0,
                     overlayColor: Theme.of(context).colorScheme.error,
-                    onPressed: () => context.goNamed('login'),
+                    onPressed: () async => await AuthRepository().disconnect(),
                     textColor: Theme.of(context).colorScheme.error,
                   ),
                 ],

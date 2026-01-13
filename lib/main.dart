@@ -32,10 +32,14 @@ void main() async {
   // Inject router with AuthRepository
   final router = createRouter(authRepository);
 
+  // Initialize ThemeProvider and load saved theme
+  final themeProvider = ThemeProvider();
+  await themeProvider.loadTheme();
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider.value(value: themeProvider),
         Provider<AuthRepository>.value(value: authRepository),
       ],
       child: TalkestApp(router: router),

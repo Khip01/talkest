@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 /// Main authentication repository (Facade pattern)
@@ -16,8 +19,7 @@ class AuthRepository {
 
   Stream<User?> get authStateChanges => _authDataSource.authStateChanges;
 
-  /// Initialize Google Sign-In (REQUIRED in version 7.x)
-  /// Should call this in main() before runApp()
+  /// Initialize Google Sign-In (REQUIRED for mobile)
   Future<void> initialize({String? clientId, String? serverClientId}) async {
     await _authDataSource.initialize(
       clientId: clientId,
@@ -28,7 +30,6 @@ class AuthRepository {
   Future<UserCredential> signInWithGoogle() async {
     final userCredential = await _authDataSource.signInWithGoogle();
 
-    // Save user data to Firestore after successful authentication
     if (userCredential.user != null) {
       await _userDataSource.saveUserData(userCredential.user!);
     }
@@ -38,6 +39,10 @@ class AuthRepository {
 
   Future<void> signOut() async {
     await _authDataSource.signOut();
+  }
+
+  Future<void> disconnect() async {
+    await _authDataSource.disconnect();
   }
 
   User? get currentUser => _authDataSource.currentUser;
@@ -56,72 +61,66 @@ class AuthRemoteDataSource {
 
   User? get currentUser => _firebaseAuth.currentUser;
 
-  /// CRITICAL: Initialize Google Sign-In before using
-  /// In version 7.x this MUST be called before any sign-in attempts
+  /// Initialize GoogleSignIn (mobile only)
   Future<void> initialize({String? clientId, String? serverClientId}) async {
-    await _googleSignIn.initialize(
-      clientId: clientId,
-      serverClientId: serverClientId,
-    );
+    if (!kIsWeb) {
+      await _googleSignIn.initialize(
+        clientId: clientId,
+        serverClientId: serverClientId,
+      );
+    }
   }
 
   Future<UserCredential> signInWithGoogle() async {
     try {
-      // Version 7.x uses authenticate() instead of signIn()
-      final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
-
-      // Get ID token from authentication (synchronous in v7.x)
-      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
-
-      // Validate that we have the ID token
-      if (googleAuth.idToken == null) {
-        throw AuthException('Failed to get ID token from Google');
+      if (kIsWeb) {
+        return await _signInWithGoogleWeb();
+      } else {
+        return await _signInWithGoogleMobile();
       }
-
-      // Create Firebase credential using the ID token
-      // Note: In v7.x, GoogleSignInAuthentication only has idToken (no accessToken)
-      final credential = GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken,
-      );
-
-      // Sign in to Firebase
-      return await _firebaseAuth.signInWithCredential(credential);
-    } on GoogleSignInException catch (e) {
-      if (e.code == GoogleSignInExceptionCode.canceled) {
-        throw AuthException('Google sign-in was cancelled by user');
-      }
-      throw AuthException(
-        'Google sign-in error: ${e.description ?? e.toString()}',
-      );
-    } on FirebaseAuthException catch (e) {
-      throw AuthException('Firebase Auth error: ${e.message ?? e.code}');
     } catch (e) {
-      throw AuthException('Failed to sign in with Google: $e');
+      // Let UI handle all errors
+      rethrow;
     }
   }
 
-  /// Regular sign out - user stays authorized for faster re-login
+  /// Web: Google Sign-In using popup
+  Future<UserCredential> _signInWithGoogleWeb() async {
+    final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+    googleProvider.addScope('email');
+    googleProvider.addScope('profile');
+    googleProvider.setCustomParameters({'prompt': 'select_account'});
+
+    return await _firebaseAuth.signInWithPopup(googleProvider);
+  }
+
+  /// Mobile: Google Sign-In using google_sign_in package
+  Future<UserCredential> _signInWithGoogleMobile() async {
+    // Sign out first to force account selection
+    await _googleSignIn.signOut();
+    final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
+    final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      idToken: googleAuth.idToken,
+    );
+    return await _firebaseAuth.signInWithCredential(credential);
+  }
+
+  /// Sign out from Firebase and Google
   Future<void> signOut() async {
-    try {
-      await Future.wait([
-        _firebaseAuth.signOut(),
-        _googleSignIn.signOut(), // use signOut() instead of disconnect()
-      ]);
-    } catch (e) {
-      throw AuthException('Failed to sign out: $e');
+    if (kIsWeb) {
+      await _firebaseAuth.signOut();
+    } else {
+      await Future.wait([_firebaseAuth.signOut(), _googleSignIn.signOut()]);
     }
   }
 
-  /// Complete disconnect - revokes all permissions and authorization
-  /// User will need to go through full authorization flow again
+  /// Disconnect: revokes all permissions
   Future<void> disconnect() async {
-    try {
-      await Future.wait([
-        _firebaseAuth.signOut(),
-        _googleSignIn.disconnect(),
-      ]);
-    } catch (e) {
-      throw AuthException('Failed to disconnect: $e');
+    if (kIsWeb) {
+      await _firebaseAuth.signOut();
+    } else {
+      await Future.wait([_firebaseAuth.signOut(), _googleSignIn.disconnect()]);
     }
   }
 }
@@ -135,17 +134,13 @@ class UserRemoteDataSource {
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
   Future<void> saveUserData(User user) async {
-    try {
-      await _firestore.collection(_usersCollection).doc(user.uid).set({
-        'uid': user.uid,
-        'email': user.email,
-        'displayName': user.displayName,
-        'photoUrl': user.photoURL,
-        'lastLogin': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-    } catch (e) {
-      throw UserDataException('Failed to save user data: $e');
-    }
+    await _firestore.collection(_usersCollection).doc(user.uid).set({
+      'uid': user.uid,
+      'email': user.email,
+      'displayName': user.displayName,
+      'photoUrl': user.photoURL,
+      'lastLogin': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   /// Get user data from Firestore

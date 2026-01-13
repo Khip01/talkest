@@ -6,8 +6,17 @@ import 'package:talkest/shared/utils/utils.dart';
 
 class AppScaffold extends StatefulWidget {
   final Widget Function(BuildContext context, BoxConstraints constraints) body;
+  final bool showAppBar;
+  final bool showAppBarTitle;
+  final bool showFunFactSection;
 
-  const AppScaffold({super.key, required this.body});
+  const AppScaffold({
+    super.key,
+    required this.body,
+    this.showAppBar = true,
+    this.showAppBarTitle = true,
+    this.showFunFactSection = true,
+  });
 
   @override
   State<AppScaffold> createState() => _AppScaffoldState();
@@ -28,38 +37,46 @@ class _AppScaffoldState extends State<AppScaffold> {
     final currentMode = themeProvider.getThemeMode;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Talkest", style: AppTextStyles.headlineSmall),
-        actions: [
-          _ThemeSwitcher(
-            currentMode: currentMode,
-            onThemeChanged: (mode) => themeProvider.setThemeModeTo(mode),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
+      appBar: widget.showAppBar
+          ? AppBar(
+              title: widget.showAppBarTitle
+                  ? Text("Talkest.", style: AppTextStyles.headlineSmall)
+                  : null,
+              actions: [
+                _ThemeSwitcher(
+                  currentMode: currentMode,
+                  onThemeChanged: (mode) => themeProvider.setThemeModeTo(mode),
+                ),
+                const SizedBox(width: 8),
+              ],
+            )
+          : null,
       body: LayoutBuilder(
         builder: (context, constraints) {
           return Stack(
             children: [
               widget.body(context, constraints),
-              Padding(
-                padding: EdgeInsets.symmetric(
-                  vertical: constraints.maxHeight / 8,
-                  horizontal: constraints.maxWidth / 6,
-                ),
-                child: Align(
-                  alignment: AlignmentGeometry.bottomCenter,
-                  child: Text(
-                    "Fun Fact!\n$funFact",
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.quote,
+              if (widget.showFunFactSection)
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    vertical: constraints.maxHeight / 8,
+                    horizontal: constraints.maxWidth / 6,
+                  ),
+                  child: Align(
+                    alignment: AlignmentGeometry.bottomCenter,
+                    child: Container(
+                      constraints: BoxConstraints(maxWidth: 300),
+                      child: Text(
+                        "Fun Fact!\n$funFact",
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.quote.copyWith(fontSize: 12),
+                      ),
+                    ),
                   ),
                 ),
-              ),
             ],
           );
-        }
+        },
       ),
     );
   }

@@ -9,6 +9,31 @@ class AppColors {
   static const Color _brandPrimary = Color(0xFF1563A3); // Neutral Blue
 
   // ============================================================================
+  // MESSAGE BOX COLORS - Works in both light and dark modes
+  // ============================================================================
+  static const Color warningColor = Color(0xFFF59E0B); // Amber/Orange
+  static const Color warningContainerColor = Color(
+    0xFFFEF3C7,
+  ); // Light yellow background
+  static const Color onWarningContainerColor = Color(
+    0xFF78350F,
+  ); // Dark brown text
+
+  static const Color infoColor = Color(0xFF3B82F6); // Blue
+  static const Color infoContainerColor = Color(
+    0xFFDBEAFE,
+  ); // Light blue background
+  static const Color onInfoContainerColor = Color(0xFF1E3A8A); // Dark blue text
+
+  static const Color successColor = Color(0xFF10B981); // Green
+  static const Color successContainerColor = Color(
+    0xFFD1FAE5,
+  ); // Light green background
+  static const Color onSuccessContainerColor = Color(
+    0xFF065F46,
+  ); // Dark green text
+
+  // ============================================================================
   // LIGHT MODE COLOR SCHEME
   // ============================================================================
   static const ColorScheme lightColorScheme = ColorScheme(
