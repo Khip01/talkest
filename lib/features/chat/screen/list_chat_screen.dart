@@ -1,6 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:talkest/app/theme/theme.dart';
 import 'package:talkest/features/auth/auth_repository.dart';
 import 'package:talkest/features/auth/widgets/column_wrapper.dart';
@@ -9,8 +7,8 @@ import 'package:talkest/features/chat/widgets/row_wrapper.dart';
 import 'package:talkest/shared/widgets/app_scaffold.dart';
 import 'package:talkest/shared/widgets/custom_filled_button.dart';
 
-class ChatScreen extends StatelessWidget {
-  const ChatScreen({super.key});
+class ListChatScreen extends StatelessWidget {
+  const ListChatScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

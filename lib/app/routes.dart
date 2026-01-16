@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:talkest/features/auth/auth_repository.dart';
 import 'package:talkest/features/auth/screen/login_screen.dart';
-import 'package:talkest/features/chat/screen/chat_screen.dart';
+import 'package:talkest/features/chat/screen/list_chat_screen.dart';
 
 GoRouter createRouter(AuthRepository authRepository) {
   return GoRouter(
@@ -40,7 +40,7 @@ GoRouter createRouter(AuthRepository authRepository) {
         path: '/login',
         builder: (_, _) => const LoginScreen(),
       ),
-      GoRoute(name: 'root', path: '/', builder: (_, _) => ChatScreen()),
+      GoRoute(name: 'root', path: '/', builder: (_, _) => ListChatScreen()),
     ],
   );
 }
