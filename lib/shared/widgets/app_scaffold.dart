@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:talkest/app/provider/theme_provider.dart';
 import 'package:talkest/app/theme/theme.dart';
@@ -8,14 +9,20 @@ class AppScaffold extends StatefulWidget {
   final Widget Function(BuildContext context, BoxConstraints constraints) body;
   final bool showAppBar;
   final bool showAppBarTitle;
+  final Widget? customAppBarTitle;
+  final bool showProfileIcon;
   final bool showFunFactSection;
+  final Widget? floatingActionButton;
 
   const AppScaffold({
     super.key,
     required this.body,
     this.showAppBar = true,
     this.showAppBarTitle = true,
-    this.showFunFactSection = true,
+    this.customAppBarTitle,
+    this.showProfileIcon = true,
+    this.showFunFactSection = false,
+    this.floatingActionButton,
   });
 
   @override
@@ -40,9 +47,17 @@ class _AppScaffoldState extends State<AppScaffold> {
       appBar: widget.showAppBar
           ? AppBar(
               title: widget.showAppBarTitle
-                  ? Text("Talkest.", style: AppTextStyles.headlineSmall)
+                  ? widget.customAppBarTitle ??
+                        Text("Talkest.", style: AppTextStyles.headlineSmall)
                   : null,
               actions: [
+                if (widget.showProfileIcon)
+                  IconButton(
+                    icon: const Icon(Icons.account_circle),
+                    // onPressed: () => context.push('/profile'),
+                    onPressed: () => context.goNamed('profile'),
+                    tooltip: 'Profile',
+                  ),
                 _ThemeSwitcher(
                   currentMode: currentMode,
                   onThemeChanged: (mode) => themeProvider.setThemeModeTo(mode),
@@ -51,6 +66,7 @@ class _AppScaffoldState extends State<AppScaffold> {
               ],
             )
           : null,
+      floatingActionButton: widget.floatingActionButton,
       body: LayoutBuilder(
         builder: (context, constraints) {
           return Stack(

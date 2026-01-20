@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:talkest/features/auth/datasource/datasources.dart';
+import 'package:talkest/features/auth/data/datasource/datasources.dart';
 import 'package:talkest/features/auth/models/app_user.dart';
 
 /// Main authentication repository (Facade pattern)

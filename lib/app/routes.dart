@@ -2,9 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:talkest/features/auth/auth_repository.dart';
+import 'package:talkest/features/auth/data/auth_repository.dart';
 import 'package:talkest/features/auth/screen/login_screen.dart';
-import 'package:talkest/features/chat/screen/list_chat_screen.dart';
+import 'package:talkest/features/chat/screen/chat_detail_screen.dart';
+import 'package:talkest/features/chat/screen/chat_list_screen.dart';
+import 'package:talkest/features/chat/screen/profile_screen.dart';
+import 'package:talkest/features/chat/screen/qr_scanner_screen.dart';
 
 GoRouter createRouter(AuthRepository authRepository) {
   return GoRouter(
@@ -13,10 +16,10 @@ GoRouter createRouter(AuthRepository authRepository) {
       final user = authRepository.currentUser;
       final loggingIn = state.matchedLocation == '/login';
 
-      debugPrint('🔀 GoRouter redirect:');
-      debugPrint('   Current user: ${user?.email ?? 'null'}');
-      debugPrint('   Current location: ${state.matchedLocation}');
-      debugPrint('   Logging in page: $loggingIn');
+      debugPrint('GoRouter redirect:');
+      debugPrint('Current user: ${user?.email ?? 'null'}');
+      debugPrint('Current location: ${state.matchedLocation}');
+      debugPrint('Logging in page: $loggingIn');
 
       // Redirect to login if not authenticated
       if (user == null && !loggingIn) {
@@ -40,7 +43,31 @@ GoRouter createRouter(AuthRepository authRepository) {
         path: '/login',
         builder: (_, _) => const LoginScreen(),
       ),
-      GoRoute(name: 'root', path: '/', builder: (_, _) => ListChatScreen()),
+      GoRoute(
+        name: 'root',
+        path: '/',
+        builder: (_, _) => const ChatListScreen(),
+        routes: [
+          GoRoute(
+            name: 'chat_detail',
+            path: 'chat/:id',
+            builder: (context, state) {
+              final String targetUserId = state.pathParameters['id'] ?? '';
+              return ChatDetailScreen(targetUserId: targetUserId);
+            },
+          ),
+          GoRoute(
+            name: 'qr_scan',
+            path: 's',
+            builder: (_, _) => const QRScannerScreen(),
+          ),
+          GoRoute(
+            name: 'profile',
+            path: '/profile',
+            builder: (_, _) => const ProfileScreen(),
+          ),
+        ],
+      ),
     ],
   );
 }
@@ -50,7 +77,7 @@ class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {
     notifyListeners();
     _subscription = stream.asBroadcastStream().listen((event) {
-      debugPrint('🔔 Auth state changed: $event');
+      debugPrint('Auth state changed: $event');
       notifyListeners();
     });
   }

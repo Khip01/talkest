@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:talkest/app/theme/text_styles.dart';
-import 'package:talkest/features/auth/auth_repository.dart';
+import 'package:talkest/features/auth/data/auth_repository.dart';
 import 'package:talkest/shared/widgets/app_scaffold.dart';
 import 'package:talkest/shared/widgets/custom_message_box.dart';
 
@@ -56,6 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return AppScaffold(
       showAppBarTitle: false,
+      showProfileIcon: false,
       body: (context, constraints) {
         return SafeArea(
           child: Padding(

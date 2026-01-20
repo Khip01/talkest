@@ -289,3 +289,35 @@ class InfoMessageBox extends StatelessWidget {
     return infoBox;
   }
 }
+
+class CustomMessageBox {
+  String? message;
+  CustomMessageState state = CustomMessageState.none;
+
+  Widget showWidget({
+    required ErrorMessageBox Function(String msg) errorBox,
+    required WarningMessageBox Function(String msg) warningBox,
+    required SuccessMessageBox Function(String msg) successBox,
+    required InfoMessageBox Function(String msg) infoBox,
+  }) {
+    switch (state) {
+      case CustomMessageState.none:
+        return SizedBox();
+      case CustomMessageState.error:
+        return errorBox(message ?? "");
+      case CustomMessageState.warning:
+        return warningBox(message ?? "");
+      case CustomMessageState.success:
+        return successBox(message ?? "");
+      case CustomMessageState.info:
+        return infoBox(message ?? "");
+    }
+  }
+
+  void setValue({required String msg, required CustomMessageState state}) {
+    this.message = msg;
+    this.state = state;
+  }
+}
+
+enum CustomMessageState { none, error, warning, success, info }

@@ -52,6 +52,23 @@ class AppUserRemoteDataSource {
       throw UserDataException("Failed to delete user data: $e");
     }
   }
+
+  /// Get user by email
+  Future<AppUser?> getUserByEmail(String email) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_appUsersCollection)
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) return null;
+
+      return AppUser.fromFirestore(querySnapshot.docs.first);
+    } catch (e) {
+      throw UserDataException("Failed to get user by email: $e");
+    }
+  }
 }
 
 /// Custom exception for user data (Firestore) errors

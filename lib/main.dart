@@ -5,7 +5,7 @@ import 'package:talkest/app/app.dart';
 import 'package:talkest/app/provider/theme_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:talkest/app/routes.dart';
-import 'package:talkest/features/auth/auth_repository.dart';
+import 'package:talkest/features/auth/data/auth_repository.dart';
 import 'firebase_options.dart';
 
 void main() async {
