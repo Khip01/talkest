@@ -55,7 +55,7 @@ class MessageBubble extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 color: isCurrentUser
-                    ? colorScheme.onPrimaryContainer.withOpacity(0.7)
+                    ? colorScheme.onPrimaryContainer.withValues(alpha: 0.7)
                     : colorScheme.onSurfaceVariant,
               ),
             ),

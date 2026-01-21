@@ -5,7 +5,6 @@ import 'package:talkest/app/theme/text_styles.dart';
 import 'package:talkest/features/auth/data/auth_repository.dart';
 import 'package:talkest/features/auth/data/datasource/datasources.dart';
 import 'package:talkest/features/auth/models/app_user.dart';
-import 'package:talkest/features/chat/screen/qr_scanner_screen.dart';
 import 'package:talkest/shared/widgets/custom_message_box.dart';
 
 class StartChatBottomSheet extends StatefulWidget {

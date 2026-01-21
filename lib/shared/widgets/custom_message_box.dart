@@ -29,7 +29,7 @@ class ErrorMessageBox extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colorScheme.error.withOpacity(0.3), width: 1),
+        border: Border.all(color: colorScheme.error.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
         children: [
@@ -96,7 +96,7 @@ class WarningMessageBox extends StatelessWidget {
         color: AppColors.warningContainerColor,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: AppColors.warningColor.withOpacity(0.3),
+          color: AppColors.warningColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -172,7 +172,7 @@ class SuccessMessageBox extends StatelessWidget {
         color: AppColors.successContainerColor,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: AppColors.successColor.withOpacity(0.3),
+          color: AppColors.successColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -248,7 +248,7 @@ class InfoMessageBox extends StatelessWidget {
         color: AppColors.infoContainerColor,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: AppColors.infoColor.withOpacity(0.3),
+          color: AppColors.infoColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -315,7 +315,7 @@ class CustomMessageBox {
   }
 
   void setValue({required String msg, required CustomMessageState state}) {
-    this.message = msg;
+    message = msg;
     this.state = state;
   }
 }

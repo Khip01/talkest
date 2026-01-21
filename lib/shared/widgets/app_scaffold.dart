@@ -44,8 +44,10 @@ class _AppScaffoldState extends State<AppScaffold> {
     final currentMode = themeProvider.getThemeMode;
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: widget.showAppBar
           ? AppBar(
+              scrolledUnderElevation: 0,
               title: widget.showAppBarTitle
                   ? widget.customAppBarTitle ??
                         Text("Talkest.", style: AppTextStyles.headlineSmall)
@@ -54,7 +56,6 @@ class _AppScaffoldState extends State<AppScaffold> {
                 if (widget.showProfileIcon)
                   IconButton(
                     icon: const Icon(Icons.account_circle),
-                    // onPressed: () => context.push('/profile'),
                     onPressed: () => context.goNamed('profile'),
                     tooltip: 'Profile',
                   ),
@@ -67,32 +68,34 @@ class _AppScaffoldState extends State<AppScaffold> {
             )
           : null,
       floatingActionButton: widget.floatingActionButton,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return Stack(
-            children: [
-              widget.body(context, constraints),
-              if (widget.showFunFactSection)
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    vertical: constraints.maxHeight / 8,
-                    horizontal: constraints.maxWidth / 6,
-                  ),
-                  child: Align(
-                    alignment: AlignmentGeometry.bottomCenter,
-                    child: Container(
-                      constraints: BoxConstraints(maxWidth: 300),
-                      child: Text(
-                        "Fun Fact!\n$funFact",
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.quote.copyWith(fontSize: 12),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Stack(
+              children: [
+                widget.body(context, constraints),
+                if (widget.showFunFactSection)
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: constraints.maxHeight / 8,
+                      horizontal: constraints.maxWidth / 6,
+                    ),
+                    child: Align(
+                      alignment: AlignmentGeometry.bottomCenter,
+                      child: Container(
+                        constraints: BoxConstraints(maxWidth: 300),
+                        child: Text(
+                          "Fun Fact!\n$funFact",
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.quote.copyWith(fontSize: 12),
+                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }

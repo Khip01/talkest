@@ -23,6 +23,7 @@ class ProfileScreen extends StatelessWidget {
     final userRepository = AppUserRemoteDataSource();
 
     return AppScaffold(
+      showProfileIcon: false,
       customAppBarTitle: Text(
         "Profile",
         style: AppTextStyles.headlineSmall.copyWith(

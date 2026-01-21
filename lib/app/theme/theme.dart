@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'colors.dart';
 import 'text_styles.dart';
@@ -42,6 +43,10 @@ final ThemeData lightTheme = ThemeData(
     titleTextStyle: AppTextStyles.titleLarge.copyWith(
       color: AppColors.lightColorScheme.onSurface,
     ),
+    systemOverlayStyle: SystemUiOverlayStyle(
+      systemNavigationBarColor: AppColors.lightColorScheme.surface,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
   ),
 
   // Card
@@ -54,8 +59,8 @@ final ThemeData lightTheme = ThemeData(
   // Input Decoration
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
-    fillColor: AppColors.lightColorScheme.surfaceContainerHighest.withOpacity(
-      0.3,
+    fillColor: AppColors.lightColorScheme.surfaceContainerHighest.withValues(
+      alpha: 0.3,
     ),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
@@ -202,6 +207,10 @@ final ThemeData darkTheme = ThemeData(
     titleTextStyle: AppTextStyles.titleLarge.copyWith(
       color: AppColors.darkColorScheme.onSurface,
     ),
+    systemOverlayStyle: SystemUiOverlayStyle(
+      systemNavigationBarColor: AppColors.darkColorScheme.surface,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
   ),
 
   // Card
@@ -214,8 +223,8 @@ final ThemeData darkTheme = ThemeData(
   // Input Decoration
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
-    fillColor: AppColors.darkColorScheme.surfaceContainerHighest.withOpacity(
-      0.3,
+    fillColor: AppColors.darkColorScheme.surfaceContainerHighest.withValues(
+      alpha: 0.3,
     ),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),

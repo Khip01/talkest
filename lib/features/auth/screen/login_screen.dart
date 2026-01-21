@@ -31,6 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       // Show error when popup closed or cancelled
       if (mounted) {
+        debugPrint("SIGN-IN ERROR: $e");
         setState(() {
           _isLoading = false;
           _errorMessage = 'Sign-in was cancelled. Please try again.';
@@ -107,10 +108,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _isLoading ? null : _handleGoogleSignIn,
                       icon: _isLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Theme.of(context).colorScheme.outline,
+                              ),
                             )
                           : SvgPicture.asset(
                               'assets/icons/google_icon.svg',
@@ -129,7 +133,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 20),
                         shape: RoundedRectangleBorder(
                           side: BorderSide(
-                            color: Theme.of(context).colorScheme.primary,
+                            color: _isLoading
+                                ? Theme.of(context).colorScheme.outline
+                                : Theme.of(context).colorScheme.primary,
                             width: 1,
                           ),
                           borderRadius: BorderRadius.circular(8),
