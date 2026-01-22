@@ -12,9 +12,9 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
-    tasks.withType<JavaCompile>().configureEach {
-        options.compilerArgs.add("-Xlint:deprecation")
-    }
+//    tasks.withType<JavaCompile>().configureEach {
+//        options.compilerArgs.add("-Xlint:deprecation")
+//    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

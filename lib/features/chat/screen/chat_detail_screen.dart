@@ -9,6 +9,7 @@ import 'package:talkest/features/chat/data/chat_repository.dart';
 import 'package:talkest/features/chat/data/message_repository.dart';
 import 'package:talkest/features/chat/models/message.dart';
 import 'package:talkest/features/chat/widget/message_bubble.dart';
+import 'package:talkest/shared/widgets/custom_filled_button.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String targetUserId;
@@ -370,26 +371,25 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    child: _isSending
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Theme.of(context).colorScheme.onPrimary,
-                            ),
-                          )
-                        : IconButton(
-                            icon: Icon(
-                              Icons.send_rounded,
-                              color: Theme.of(context).colorScheme.onPrimary,
-                            ),
-                            onPressed: _sendMessage,
-                            padding: EdgeInsets.zero,
+                  _isSending
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
-                  ),
+                        )
+                      : CustomFilledButton.icon(
+                          icon: Icon(
+                            Icons.send_rounded,
+                            size: 24,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
+                          minWidth: 0,
+                          padding: EdgeInsets.all(12),
+                          onPressed: _sendMessage,
+                        ),
                 ],
               ),
             ),

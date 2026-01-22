@@ -6,8 +6,8 @@ import 'package:talkest/features/auth/data/auth_repository.dart';
 import 'package:talkest/features/auth/screen/login_screen.dart';
 import 'package:talkest/features/chat/screen/chat_detail_screen.dart';
 import 'package:talkest/features/chat/screen/chat_list_screen.dart';
-import 'package:talkest/features/chat/screen/profile_screen.dart';
-import 'package:talkest/features/chat/screen/qr_scanner_screen.dart';
+import 'package:talkest/features/profile/screen/profile_screen.dart';
+import 'package:talkest/features/auth/screen/qr_scanner_screen.dart';
 
 GoRouter createRouter(AuthRepository authRepository) {
   return GoRouter(
