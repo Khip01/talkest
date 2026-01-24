@@ -5,6 +5,8 @@ import 'package:talkest/app/theme/text_styles.dart';
 import 'package:talkest/features/auth/data/auth_repository.dart';
 import 'package:talkest/features/auth/data/datasource/datasources.dart';
 import 'package:talkest/features/auth/models/app_user.dart';
+import 'package:talkest/shared/widgets/custom_text_button.dart';
+import 'package:talkest/shared/widgets/custom_filled_button.dart';
 import 'package:talkest/shared/widgets/custom_message_box.dart';
 
 class StartChatBottomSheet extends StatefulWidget {
@@ -114,46 +116,50 @@ class _StartChatBottomSheetState extends State<StartChatBottomSheet> {
           Text(
             'Start New Chat',
             style: AppTextStyles.titleLarge,
-            // textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
 
           // Message Box Validation
           validationBox.showWidget(
-            errorBox: (msg) => ErrorMessageBox(message: msg),
+            margin: EdgeInsets.only(bottom: 16),
+            errorBox: (msg) => ErrorMessageBox(
+              message: msg,
+              onDismiss: () => setState(() {
+                validationBox.state = CustomMessageState.none;
+              }),
+            ),
             warningBox: (msg) => WarningMessageBox(message: msg),
             successBox: (msg) => SuccessMessageBox(message: msg),
             infoBox: (msg) => InfoMessageBox(message: msg),
           ),
-          const SizedBox(height: 16),
 
           // Email TextField
           TextField(
             controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
               labelText: 'Google email',
               hintText: 'example@gmail.com',
               prefixIcon: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: const Icon(Icons.email_outlined),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(4),
                 borderSide: const BorderSide(color: Colors.transparent),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(4),
                 borderSide: const BorderSide(color: Colors.transparent),
               ),
             ),
-            keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.go,
             onSubmitted: (_) => _startChatByEmail(),
           ),
           const SizedBox(height: 16),
 
           // Get in touch button
-          FilledButton.icon(
+          CustomFilledButton.icon(
             onPressed: _isLoading ? null : _startChatByEmail,
             icon: _isLoading
                 ? const SizedBox(
@@ -162,13 +168,7 @@ class _StartChatBottomSheetState extends State<StartChatBottomSheet> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.chat_bubble),
-            label: Text(_isLoading ? 'Searching...' : 'Get in touch'),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
+            label: _isLoading ? 'Searching...' : 'Get in touch',
           ),
 
           const SizedBox(height: 16),
@@ -176,16 +176,10 @@ class _StartChatBottomSheetState extends State<StartChatBottomSheet> {
           const SizedBox(height: 8),
 
           // Add via QR Code button
-          TextButton.icon(
+          CustomTextButton.icon(
             onPressed: _isLoading ? null : _openQRScanner,
             icon: const Icon(Icons.qr_code_scanner),
-            label: const Text('Add via QR Code'),
-            style: TextButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
+            label: "Add via QR Code",
           ),
           const SizedBox(height: 8),
         ],

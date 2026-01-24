@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:talkest/app/theme/text_styles.dart';
 import 'package:talkest/features/auth/models/app_user.dart';
 import 'package:talkest/features/chat/models/chat.dart';
 import 'package:intl/intl.dart';
@@ -37,6 +38,7 @@ class ChatTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final unreadCount = chat.unreadCount[currentUserId] ?? 0;
     final hasUnread = unreadCount > 0;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
     return ListTile(
       onTap: onTap,
@@ -47,9 +49,16 @@ class ChatTile extends StatelessWidget {
                 width: 48,
                 height: 48,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => const CircleAvatar(
+                placeholder: (context, url) => CircleAvatar(
                   radius: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  backgroundColor: colorScheme.outline,
+                  child: Padding(
+                    padding: EdgeInsets.all(8),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: colorScheme.outlineVariant,
+                    ),
+                  ),
                 ),
                 errorWidget: (context, url, error) => CircleAvatar(
                   radius: 24,
@@ -65,21 +74,25 @@ class ChatTile extends StatelessWidget {
                 ),
               ),
             )
-          : CircleAvatar(
-              radius: 24,
-              child: Text(
-                otherUser.displayName.isNotEmpty
-                    ? otherUser.displayName[0].toUpperCase()
-                    : '?',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
+          : SizedBox(
+              height: 48,
+              width: 48,
+              child: CircleAvatar(
+                radius: 24,
+                child: Text(
+                  otherUser.displayName.isNotEmpty
+                      ? otherUser.displayName[0].toUpperCase()
+                      : '?',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
       title: Text(
         otherUser.displayName,
-        style: TextStyle(
+        style: AppTextStyles.titleSmall.copyWith(
           fontWeight: hasUnread ? FontWeight.w600 : FontWeight.w400,
         ),
         maxLines: 1,
@@ -97,7 +110,7 @@ class ChatTile extends StatelessWidget {
                 fontWeight: hasUnread ? FontWeight.w500 : FontWeight.w400,
               ),
             )
-          : null,
+          : Text(""),
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -132,6 +145,9 @@ class ChatTile extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ),
+          ] else ...[
+            const SizedBox(height: 4),
+            SizedBox(child: Text("")),
           ],
         ],
       ),

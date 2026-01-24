@@ -1,7 +1,10 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:talkest/app/theme/text_styles.dart';
 import 'package:talkest/features/auth/data/auth_repository.dart';
 import 'package:talkest/features/auth/data/datasource/app_user_remote_data_source.dart';
 import 'package:talkest/features/auth/models/app_user.dart';
@@ -9,7 +12,9 @@ import 'package:talkest/features/chat/data/chat_repository.dart';
 import 'package:talkest/features/chat/data/message_repository.dart';
 import 'package:talkest/features/chat/models/message.dart';
 import 'package:talkest/features/chat/widget/message_bubble.dart';
+import 'package:talkest/shared/widgets/app_scaffold.dart';
 import 'package:talkest/shared/widgets/custom_filled_button.dart';
+import 'package:talkest/shared/widgets/custom_text_button.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String targetUserId;
@@ -171,6 +176,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final currentUser = context.read<AuthRepository>().currentUser;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
     if (currentUser == null) {
       return const Scaffold(body: Center(child: Text('Not authenticated')));
@@ -179,12 +185,49 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     // Show loading state
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Loading...')),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          titleSpacing: 0,
+          leadingWidth: 56 + 4,
+          leading: Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: CustomTextButton.icon(
+              minWidth: 0,
+              padding: EdgeInsets.symmetric(horizontal: 4),
+              icon: Icon(Icons.arrow_back),
+              onPressed: () => context.pop(),
+            ),
+          ),
+          title: Row(
+            children: [
+              ClipOval(
+                child: Container(
+                  color: colorScheme.outline,
+                  height: 36,
+                  width: 36,
+                  child: Icon(Icons.person, color: colorScheme.outlineVariant),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  "Loading...",
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.titleMedium,
+                ),
+              ),
+            ],
+          ),
+        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(
+                strokeWidth: 2,
                 color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(height: 16),
@@ -203,7 +246,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     // Show error state
     if (_errorMessage != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Error')),
+        appBar: AppBar(title: const Text('Oops, error')),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -233,8 +276,26 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
 
     // Normal state - data sudah loaded
-    return Scaffold(
-      appBar: AppBar(
+    return AppScaffold(
+      isUsingSafeArea: false,
+      customAppBar: AppBar(
+        backgroundColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Container(
+              color: Theme.of(
+                context,
+              ).colorScheme.surface.withValues(alpha: 0.4),
+            ),
+          ),
+        ),
+        titleSpacing: AppScaffold.appBarDefaultConfig.titleSpacing,
+        leadingWidth: AppScaffold.appBarDefaultConfig.leadingWidth,
+        leading: AppScaffold.appBarDefaultConfig.leading(context),
         title: Row(
           children: [
             _otherUser!.photoUrl.isNotEmpty
@@ -260,13 +321,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       ),
                     ),
                   )
-                : CircleAvatar(
-                    radius: 18,
-                    child: Text(
-                      _otherUser!.displayName.isNotEmpty
-                          ? _otherUser!.displayName[0].toUpperCase()
-                          : '?',
-                      style: const TextStyle(fontSize: 16),
+                : SizedBox(
+                    height: 36,
+                    width: 36,
+                    child: CircleAvatar(
+                      radius: 18,
+                      child: Text(
+                        _otherUser!.displayName.isNotEmpty
+                            ? _otherUser!.displayName[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(fontSize: 16),
+                      ),
                     ),
                   ),
             const SizedBox(width: 12),
@@ -274,100 +339,142 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               child: Text(
                 _otherUser!.displayName,
                 overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.titleMedium,
               ),
             ),
           ],
         ),
       ),
-      body: Column(
-        children: [
-          // Messages list
-          Expanded(
-            child: StreamBuilder<List<Message>>(
-              stream: _messageRepository.getMessagesForChat(_chatId!),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
+      body: (context, constraints) {
+        return Column(
+          children: [
+            // Messages list
+            Expanded(
+              child: StreamBuilder<List<Message>>(
+                stream: _messageRepository.getMessagesForChat(_chatId!),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
 
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final messages = snapshot.data ?? [];
-
-                if (messages.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No messages yet.\nSay hi! 👋',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  );
-                }
-
-                // Auto-scroll to bottom when new messages arrive
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _scrollToBottom();
-                });
-
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final message = messages[index];
-                    final isCurrentUser = message.senderId == currentUser.uid;
-
-                    return MessageBubble(
-                      message: message,
-                      isCurrentUser: isCurrentUser,
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     );
-                  },
-                );
-              },
-            ),
-          ),
+                  }
 
-          // Message input
-          Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
-                ),
-              ],
+                  final messages = snapshot.data ?? [];
+
+                  if (messages.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No messages yet.\nSay hi! 👋',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    );
+                  }
+
+                  // Auto-scroll to bottom when new messages arrive
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _scrollToBottom();
+                  });
+
+                  return ListView.builder(
+                    controller: _scrollController,
+                    padding: EdgeInsets.only(
+                      top: MediaQuery.of(context).padding.top + 8,
+                      bottom: 8,
+                    ),
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final message = messages[index];
+                      final isCurrentUser = message.senderId == currentUser.uid;
+
+                      return MessageBubble(
+                        message: message,
+                        isCurrentUser: isCurrentUser,
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-            padding: const EdgeInsets.all(8),
-            child: SafeArea(
+
+            // Message input
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.surface.withValues(alpha: 0.4),
+                // boxShadow: [
+                //   BoxShadow(
+                //     color: Colors.black.withValues(alpha: 0.05),
+                //     blurRadius: 4,
+                //     offset: const Offset(0, -2),
+                //   ),
+                // ],
+              ),
+              padding: EdgeInsets.only(
+                left: 8,
+                right: 8,
+                top: 8,
+                bottom: MediaQuery.of(context).padding.bottom + 8,
+              ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
+                    // child: TextField(
+                    //   controller: _messageController,
+                    //   decoration: InputDecoration(
+                    //     hintText: 'Type a message...',
+                    //     border: OutlineInputBorder(
+                    //       borderRadius: BorderRadius.circular(24),
+                    //       borderSide: BorderSide.none,
+                    //     ),
+                    //     filled: true,
+                    //     fillColor: Theme.of(
+                    //       context,
+                    //     ).colorScheme.surfaceContainerHighest,
+                    //     contentPadding: const EdgeInsets.symmetric(
+                    //       horizontal: 16,
+                    //       vertical: 10,
+                    //     ),
+                    //   ),
+                    //   maxLines: null,
+                    //   textCapitalization: TextCapitalization.sentences,
+                    //   onSubmitted: (_) => _sendMessage(),
+                    // ),
                     child: TextField(
                       controller: _messageController,
+                      keyboardType: TextInputType.multiline,
+                      minLines: 1,
+                      maxLines: 8,
                       decoration: InputDecoration(
+                        // labelText: 'Google email',
                         hintText: 'Type a message...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
+                        // prefixIcon: Padding(
+                        //   padding: const EdgeInsets.symmetric(horizontal: 4),
+                        //   child: const Icon(Icons.email_outlined),
+                        // ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(4),
+                          borderSide: const BorderSide(
+                            color: Colors.transparent,
+                          ),
                         ),
-                        filled: true,
-                        fillColor: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(4),
+                          borderSide: const BorderSide(
+                            color: Colors.transparent,
+                          ),
                         ),
                       ),
-                      maxLines: null,
-                      textCapitalization: TextCapitalization.sentences,
-                      onSubmitted: (_) => _sendMessage(),
+                      textInputAction: TextInputAction.newline,
+                      // onSubmitted: ,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -387,15 +494,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                             color: Theme.of(context).colorScheme.onPrimary,
                           ),
                           minWidth: 0,
-                          padding: EdgeInsets.all(12),
+                          padding: EdgeInsets.all(15),
                           onPressed: _sendMessage,
                         ),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        );
+      },
     );
   }
 }

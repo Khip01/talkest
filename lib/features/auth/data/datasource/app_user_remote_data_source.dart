@@ -44,6 +44,18 @@ class AppUserRemoteDataSource {
     }
   }
 
+  /// Update only the display name
+  Future<void> updateDisplayName(String uid, String displayName) async {
+    try {
+      await _firestore.collection(_appUsersCollection).doc(uid).update({
+        'displayName': displayName,
+        'updatedAt': Timestamp.now(),
+      });
+    } catch (e) {
+      throw UserDataException("Failed to update display name: $e");
+    }
+  }
+
   /// Delete user data from Firestore
   Future<void> deleteUserData(String uid) async {
     try {

@@ -75,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: Theme.of(context).textTheme.headlineLarge,
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
 
                   // Welcome Message
                   Container(
@@ -99,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         });
                       },
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                   ],
 
                   // Google Sign In Button
@@ -138,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 : Theme.of(context).colorScheme.primary,
                             width: 1,
                           ),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(4),
                         ),
                       ),
                     ),

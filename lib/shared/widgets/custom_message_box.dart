@@ -28,8 +28,11 @@ class ErrorMessageBox extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: colorScheme.errorContainer,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colorScheme.error.withValues(alpha: 0.3), width: 1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: colorScheme.error.withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
@@ -94,7 +97,7 @@ class WarningMessageBox extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: AppColors.warningContainerColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(
           color: AppColors.warningColor.withValues(alpha: 0.3),
           width: 1,
@@ -170,7 +173,7 @@ class SuccessMessageBox extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: AppColors.successContainerColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(
           color: AppColors.successColor.withValues(alpha: 0.3),
           width: 1,
@@ -246,7 +249,7 @@ class InfoMessageBox extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: AppColors.infoContainerColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(
           color: AppColors.infoColor.withValues(alpha: 0.3),
           width: 1,
@@ -295,6 +298,7 @@ class CustomMessageBox {
   CustomMessageState state = CustomMessageState.none;
 
   Widget showWidget({
+    EdgeInsets? margin,
     required ErrorMessageBox Function(String msg) errorBox,
     required WarningMessageBox Function(String msg) warningBox,
     required SuccessMessageBox Function(String msg) successBox,
@@ -304,13 +308,13 @@ class CustomMessageBox {
       case CustomMessageState.none:
         return SizedBox();
       case CustomMessageState.error:
-        return errorBox(message ?? "");
+        return Container(margin: margin, child: errorBox(message ?? ""));
       case CustomMessageState.warning:
-        return warningBox(message ?? "");
+        return Container(margin: margin, child: warningBox(message ?? ""));
       case CustomMessageState.success:
-        return successBox(message ?? "");
+        return Container(margin: margin, child: successBox(message ?? ""));
       case CustomMessageState.info:
-        return infoBox(message ?? "");
+        return Container(margin: margin, child: infoBox(message ?? ""));
     }
   }
 
