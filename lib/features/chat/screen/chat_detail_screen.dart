@@ -130,13 +130,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
+    if (!_scrollController.hasClients) return;
+
+    _scrollController.animateTo(
+      0.0,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+
   }
 
   Future<void> _sendMessage() async {
@@ -384,13 +385,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
                   return ListView.builder(
                     controller: _scrollController,
-                    padding: EdgeInsets.only(
-                      top: MediaQuery.of(context).padding.top + 8,
-                      bottom: 8,
-                    ),
+                    reverse: true,
+                    padding: EdgeInsets.only(top: 8, bottom: 8),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
-                      final message = messages[index];
+                      final message = messages[messages.length - 1 - index];
                       final isCurrentUser = message.senderId == currentUser.uid;
 
                       return MessageBubble(
