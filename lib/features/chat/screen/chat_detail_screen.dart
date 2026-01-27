@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -32,6 +34,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final ChatRepository _chatRepository = ChatRepository();
   final AppUserRemoteDataSource _userRepository = AppUserRemoteDataSource();
 
+  StickyDateController? _stickyDateController;
+  final Map<String, GlobalKey> _messageKeys = {};
+  final Map<String, DateTime> _messageDates = {};
+
   bool _isSending = false;
   bool _isLoading = true;
   String? _errorMessage;
@@ -45,6 +51,22 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     super.initState();
     _loadChatData();
   }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (_stickyDateController != null) return;
+
+    final paddingTop = MediaQuery.of(context).padding.top;
+
+    _stickyDateController = StickyDateController(
+      triggerLineY: paddingTop + kToolbarHeight + 18,
+    );
+
+    _stickyDateController!.attachScrollController(_scrollController);
+  }
+
 
   Future<void> _loadChatData() async {
     try {
@@ -119,6 +141,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _stickyDateController!.dispose();
     super.dispose();
   }
 
@@ -137,7 +160,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
-
   }
 
   Future<void> _sendMessage() async {
@@ -172,6 +194,89 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         setState(() => _isSending = false);
       }
     }
+  }
+
+  /// Group messages by date (on DESC-ordered list, no manual reversal)
+  List<_MessageGroup> _groupMessagesByDate(List<Message> messages) {
+    final groups = <_MessageGroup>[];
+    DateTime? currentDate;
+    List<Message> currentMessages = [];
+
+    // Messages are already DESC from Firestore
+    for (final message in messages) {
+      final messageDate = DateTime(
+        message.createdAt.year,
+        message.createdAt.month,
+        message.createdAt.day,
+      );
+
+      if (currentDate == null || !_isSameDay(currentDate, messageDate)) {
+        if (currentMessages.isNotEmpty && currentDate != null) {
+          groups.add(
+            _MessageGroup(date: currentDate, messages: currentMessages),
+          );
+        }
+        currentDate = messageDate;
+        currentMessages = [message];
+      } else {
+        currentMessages.add(message);
+      }
+    }
+
+    if (currentMessages.isNotEmpty && currentDate != null) {
+      groups.add(_MessageGroup(date: currentDate, messages: currentMessages));
+    }
+
+    return groups;
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  int _calculateTotalItems(List<_MessageGroup> groups) {
+    int total = 0;
+    for (final group in groups) {
+      total += group.messages.length;
+      total += 1; // Date divider
+    }
+    return total;
+  }
+
+  Widget _buildListItem(
+    BuildContext context,
+    int index,
+    List<_MessageGroup> groups,
+    String currentUserId,
+  ) {
+    int itemIndex = 0;
+
+    // Iterate through groups
+    for (final group in groups) {
+      // Render messages first
+      for (int i = 0; i < group.messages.length; i++) {
+        if (itemIndex == index) {
+          final message = group.messages[i];
+          final isCurrentUser = message.senderId == currentUserId;
+          return KeyedSubtree(
+            key: _messageKeys[message.id],
+            child: MessageBubble(
+              message: message,
+              isCurrentUser: isCurrentUser,
+            ),
+          );
+        }
+        itemIndex++;
+      }
+
+      // Then render date divider (appears AFTER messages due to reverse)
+      if (itemIndex == index) {
+        return DateDivider(date: group.date);
+      }
+      itemIndex++;
+    }
+
+    return const SizedBox.shrink();
   }
 
   @override
@@ -383,20 +488,61 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     _scrollToBottom();
                   });
 
-                  return ListView.builder(
-                    controller: _scrollController,
-                    reverse: true,
-                    padding: EdgeInsets.only(top: 8, bottom: 8),
-                    itemCount: messages.length,
-                    itemBuilder: (context, index) {
-                      final message = messages[messages.length - 1 - index];
-                      final isCurrentUser = message.senderId == currentUser.uid;
+                  // Group messages by date (DESC list, no manual reversal)
+                  final groupedMessages = _groupMessagesByDate(messages);
 
-                      return MessageBubble(
-                        message: message,
-                        isCurrentUser: isCurrentUser,
-                      );
-                    },
+                  // Create GlobalKeys for ALL messages and track their dates
+                  _messageKeys.clear();
+                  _messageDates.clear();
+                  for (final message in messages) {
+                    _messageKeys[message.id] = GlobalKey();
+                    final messageDate = DateTime(
+                      message.createdAt.year,
+                      message.createdAt.month,
+                      message.createdAt.day,
+                    );
+                    _messageDates[message.id] = messageDate;
+                  }
+
+                  // Update controller with message keys and dates
+                  _stickyDateController!.updateMessageKeys(
+                    _messageKeys,
+                    _messageDates,
+                  );
+
+                  return Stack(
+                    children: [
+                      // Message list with date dividers
+                      ListView.builder(
+                        controller: _scrollController,
+                        reverse: true,
+                        padding: EdgeInsets.only(
+                          top: MediaQuery.of(context).padding.top,
+                          bottom: 8,
+                        ),
+                        itemCount: _calculateTotalItems(groupedMessages),
+                        itemBuilder: (context, index) {
+                          return _buildListItem(
+                            context,
+                            index,
+                            groupedMessages,
+                            currentUser.uid,
+                          );
+                        },
+                      ),
+
+                      // Floating sticky date overlay
+                      Positioned(
+                        top: MediaQuery.of(context).padding.top + 4,
+                        left: 0,
+                        right: 0,
+                        child: IgnorePointer(
+                          child: StickyDateOverlay(
+                            controller: _stickyDateController!,
+                          ),
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),
@@ -500,6 +646,225 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               ),
             ),
           ],
+        );
+      },
+    );
+  }
+}
+
+// Data class for message grouping
+class _MessageGroup {
+  final DateTime date;
+  final List<Message> messages;
+
+  _MessageGroup({required this.date, required this.messages});
+}
+
+// Sticky date controller
+class StickyDateController extends ChangeNotifier {
+  final double triggerLineY;
+
+  Map<String, GlobalKey> _messageKeys = {};
+  Map<String, DateTime> _messageDates = {};
+  ScrollController? _scrollController;
+  Timer? _hideTimer;
+
+  String? _currentDate;
+  bool _isVisible = false;
+
+  StickyDateController({required this.triggerLineY});
+
+  String? get currentDate => _currentDate;
+  bool get isVisible => _isVisible;
+
+  void updateMessageKeys(
+    Map<String, GlobalKey> keys,
+    Map<String, DateTime> dates,
+  ) {
+    _messageKeys = keys;
+    _messageDates = dates;
+  }
+
+  void attachScrollController(ScrollController controller) {
+    _scrollController?.removeListener(_onScroll);
+    _scrollController = controller;
+    _scrollController?.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController == null) return;
+
+    // Show sticky when scrolling
+    if (!_isVisible) {
+      _isVisible = true;
+      notifyListeners();
+    }
+
+    // Reset hide timer
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 1), () {
+      _isVisible = false;
+      notifyListeners();
+    });
+
+    _updateStickyDateFromMessages();
+  }
+
+  void _updateStickyDateFromMessages() {
+    if (_messageKeys.isEmpty || _messageDates.isEmpty) return;
+
+    String? newDate;
+    double closestDistance = double.infinity;
+    DateTime? closestDate;
+
+    // Find the message closest to the trigger line
+    for (final entry in _messageKeys.entries) {
+      final messageId = entry.key;
+      final key = entry.value;
+      final date = _messageDates[messageId];
+
+      if (date == null) continue;
+
+      final context = key.currentContext;
+      if (context == null) continue;
+
+      final renderBox = context.findRenderObject() as RenderBox?;
+      if (renderBox == null) continue;
+
+      // Get message position and size
+      final position = renderBox.localToGlobal(Offset.zero);
+      final size = renderBox.size;
+
+      // Calculate message center Y
+      final messageCenterY = position.dy + (size.height / 2);
+
+      // Calculate distance from trigger line
+      final distance = (messageCenterY - triggerLineY).abs();
+
+      // Find closest message
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestDate = date;
+      }
+    }
+
+    if (closestDate != null) {
+      newDate = _formatDate(closestDate);
+    }
+
+    if (newDate != _currentDate) {
+      _currentDate = newDate;
+      notifyListeners();
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final dateOnly = DateTime(date.year, date.month, date.day);
+
+    if (_isSameDay(dateOnly, today)) {
+      return 'Today';
+    } else if (_isSameDay(dateOnly, yesterday)) {
+      return 'Yesterday';
+    } else if (date.year == now.year) {
+      return DateFormat('MMMM d').format(date);
+    } else {
+      return DateFormat('MMMM d, y').format(date);
+    }
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  @override
+  void dispose() {
+    _scrollController?.removeListener(_onScroll);
+    _hideTimer?.cancel();
+    super.dispose();
+  }
+}
+
+// Simple date divider widget
+class DateDivider extends StatelessWidget {
+  final DateTime date;
+
+  const DateDivider({super.key, required this.date});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final dateOnly = DateTime(date.year, date.month, date.day);
+
+    String text;
+    if (dateOnly.isAtSameMomentAs(today)) {
+      text = 'Today';
+    } else if (dateOnly.isAtSameMomentAs(yesterday)) {
+      text = 'Yesterday';
+    } else if (date.year == now.year) {
+      text = DateFormat('MMMM d').format(date);
+    } else {
+      text = DateFormat('MMMM d, y').format(date);
+    }
+
+    return Container(
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+// Floating sticky date overlay
+class StickyDateOverlay extends StatelessWidget {
+  final StickyDateController controller;
+
+  const StickyDateOverlay({super.key, required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, child) {
+        if (!controller.isVisible || controller.currentDate == null) {
+          return const SizedBox.shrink();
+        }
+
+        return Center(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.surface.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  controller.currentDate!,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          ),
         );
       },
     );

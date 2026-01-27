@@ -38,7 +38,9 @@ class MessageBubble extends StatelessWidget {
           ),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: isCurrentUser
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
             Text(
               message.text,
@@ -48,6 +50,7 @@ class MessageBubble extends StatelessWidget {
                     : colorScheme.onSurface,
                 fontSize: 15,
               ),
+              textAlign: isCurrentUser ? TextAlign.right : TextAlign.left,
             ),
             const SizedBox(height: 4),
             Text(

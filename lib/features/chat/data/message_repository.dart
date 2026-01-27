@@ -16,7 +16,7 @@ class MessageRepository {
         .collection(_chatsCollection)
         .doc(chatId)
         .collection(_messagesSubcollection)
-        .orderBy('createdAt', descending: false)
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
           return snapshot.docs
