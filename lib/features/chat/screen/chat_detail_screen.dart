@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
@@ -16,6 +17,7 @@ import 'package:talkest/features/chat/models/message.dart';
 import 'package:talkest/features/chat/widget/message_bubble.dart';
 import 'package:talkest/shared/widgets/app_scaffold.dart';
 import 'package:talkest/shared/widgets/custom_filled_button.dart';
+import 'package:talkest/shared/widgets/custom_message_box.dart';
 import 'package:talkest/shared/widgets/custom_text_button.dart';
 
 class ChatDetailScreen extends StatefulWidget {
@@ -66,7 +68,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     _stickyDateController!.attachScrollController(_scrollController);
   }
-
 
   Future<void> _loadChatData() async {
     try {
@@ -279,6 +280,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     return const SizedBox.shrink();
   }
 
+  void _showOtherUserProfile(BuildContext context, AppUser otherUser) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      builder: (_) => _OtherUserProfileBottomSheet(appUser: otherUser),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentUser = context.read<AuthRepository>().currentUser;
@@ -396,27 +407,47 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               color: Theme.of(
                 context,
               ).colorScheme.surface.withValues(alpha: 0.4),
+              child: InkWell(
+                onLongPress: () {},
+                onTap: () => _showOtherUserProfile(context, _otherUser!),
+              ),
             ),
           ),
         ),
         titleSpacing: AppScaffold.appBarDefaultConfig.titleSpacing,
         leadingWidth: AppScaffold.appBarDefaultConfig.leadingWidth,
         leading: AppScaffold.appBarDefaultConfig.leading(context),
-        title: Row(
-          children: [
-            _otherUser!.photoUrl.isNotEmpty
-                ? ClipOval(
-                    child: CachedNetworkImage(
-                      imageUrl: _otherUser!.photoUrl,
-                      width: 36,
-                      height: 36,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => const SizedBox(
+        title: IgnorePointer(
+          ignoring: true,
+          child: Row(
+            children: [
+              _otherUser!.photoUrl.isNotEmpty
+                  ? ClipOval(
+                      child: CachedNetworkImage(
+                        imageUrl: _otherUser!.photoUrl,
                         width: 36,
                         height: 36,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => const SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        errorWidget: (context, url, error) => CircleAvatar(
+                          radius: 18,
+                          child: Text(
+                            _otherUser!.displayName.isNotEmpty
+                                ? _otherUser!.displayName[0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
                       ),
-                      errorWidget: (context, url, error) => CircleAvatar(
+                    )
+                  : SizedBox(
+                      height: 36,
+                      width: 36,
+                      child: CircleAvatar(
                         radius: 18,
                         child: Text(
                           _otherUser!.displayName.isNotEmpty
@@ -426,29 +457,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         ),
                       ),
                     ),
-                  )
-                : SizedBox(
-                    height: 36,
-                    width: 36,
-                    child: CircleAvatar(
-                      radius: 18,
-                      child: Text(
-                        _otherUser!.displayName.isNotEmpty
-                            ? _otherUser!.displayName[0].toUpperCase()
-                            : '?',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                _otherUser!.displayName,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.titleMedium,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _otherUser!.displayName,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.titleMedium,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       body: (context, constraints) {
@@ -652,6 +670,304 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 }
 
+// =============================================================================
+// OTHER USER PROFILE BOTTOM SHEET
+// =============================================================================
+
+class _OtherUserProfileBottomSheet extends StatefulWidget {
+  final AppUser appUser;
+
+  const _OtherUserProfileBottomSheet({required this.appUser});
+
+  @override
+  State<_OtherUserProfileBottomSheet> createState() =>
+      _OtherUserProfileBottomSheetState();
+}
+
+class _OtherUserProfileBottomSheetState
+    extends State<_OtherUserProfileBottomSheet> {
+  final CustomMessageBox _messageBox = CustomMessageBox();
+
+  String _formatDate(DateTime date) {
+    return DateFormat('d MMM yyyy').format(date);
+  }
+
+  String _capitalizeFirst(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        decoration: BoxDecoration(
+          color: colorScheme.surface.withValues(alpha: 0.7),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with close button
+                Row(
+                  children: [
+                    CustomTextButton.icon(
+                      icon: Icon(Icons.close, color: colorScheme.onSurface),
+                      minWidth: 0,
+                      padding: EdgeInsets.zero,
+                      onPressed: () => context.pop(),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Profile',
+                      style: AppTextStyles.titleLarge.copyWith(
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // Avatar + Display Name + Tag
+                Center(
+                  child: Column(
+                    children: [
+                      _buildAvatar(context),
+                      const SizedBox(height: 16),
+                      // Display Name
+                      Text(
+                        widget.appUser.displayName.isNotEmpty
+                            ? widget.appUser.displayName
+                            : widget.appUser.name,
+                        style: AppTextStyles.headlineMedium.copyWith(
+                          color: colorScheme.onSurface,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 4),
+                      // Username tag
+                      Text(
+                        '@${widget.appUser.name.toLowerCase().replaceAll(' ', '')}',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Account Info Section
+                Text(
+                  'Account',
+                  style: AppTextStyles.titleMedium.copyWith(
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Email
+                _buildEmailItem(context),
+
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 32 / 2),
+                  child: Divider(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  ),
+                ),
+
+                // Sign-in provider
+                _buildInfoItem(
+                  context,
+                  label: 'Signed in with',
+                  value: _capitalizeFirst(widget.appUser.provider),
+                ),
+
+                Divider(
+                  height: 32,
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                ),
+
+                // Member since
+                _buildInfoItem(
+                  context,
+                  label: 'Member since',
+                  value: _formatDate(widget.appUser.createdAt),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Copy email notification
+                _messageBox.showWidget(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  infoBox: (msg) => InfoMessageBox(
+                    message: msg,
+                    onDismiss: () => setState(() {
+                      _messageBox.state = CustomMessageState.none;
+                    }),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final initial = widget.appUser.displayName.isNotEmpty
+        ? widget.appUser.displayName[0].toUpperCase()
+        : '?';
+    const double size = 88;
+
+    if (widget.appUser.photoUrl.isNotEmpty) {
+      return ClipOval(
+        child: CachedNetworkImage(
+          imageUrl: widget.appUser.photoUrl,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => CircleAvatar(
+            radius: size / 2,
+            backgroundColor: colorScheme.primaryContainer,
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: colorScheme.primary,
+              ),
+            ),
+          ),
+          errorWidget: (context, url, error) => CircleAvatar(
+            radius: size / 2,
+            backgroundColor: colorScheme.primaryContainer,
+            child: Text(
+              initial,
+              style: AppTextStyles.headlineLarge.copyWith(
+                color: colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return CircleAvatar(
+      radius: size / 2,
+      backgroundColor: colorScheme.primaryContainer,
+      child: Text(
+        initial,
+        style: AppTextStyles.headlineLarge.copyWith(
+          color: colorScheme.onPrimaryContainer,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmailItem(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          'Email',
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              CustomTextButton.icon(
+                minWidth: 0,
+                padding: EdgeInsets.zero,
+                icon: Icon(
+                  Icons.copy_rounded,
+                  size: 16,
+                  color: colorScheme.outline,
+                ),
+                onPressed: _copyEmailToClipboard,
+              ),
+              Flexible(
+                child: Text(
+                  widget.appUser.email,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: colorScheme.onSurface,
+                  ),
+                  textAlign: TextAlign.end,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _copyEmailToClipboard() async {
+    await Clipboard.setData(ClipboardData(text: widget.appUser.email));
+
+    if (mounted) {
+      setState(() {
+        _messageBox.setValue(
+          msg: 'Email copied to clipboard',
+          state: CustomMessageState.info,
+        );
+      });
+    }
+  }
+
+  Widget _buildInfoItem(
+    BuildContext context, {
+    required String label,
+    required String value,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Flexible(
+          child: Text(
+            value,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: colorScheme.onSurface,
+            ),
+            textAlign: TextAlign.end,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 // Data class for message grouping
 class _MessageGroup {
   final DateTime date;
@@ -675,6 +991,7 @@ class StickyDateController extends ChangeNotifier {
   StickyDateController({required this.triggerLineY});
 
   String? get currentDate => _currentDate;
+
   bool get isVisible => _isVisible;
 
   void updateMessageKeys(
