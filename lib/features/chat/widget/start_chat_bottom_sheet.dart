@@ -128,9 +128,6 @@ class _StartChatBottomSheetState extends State<StartChatBottomSheet> {
                 validationBox.state = CustomMessageState.none;
               }),
             ),
-            warningBox: (msg) => WarningMessageBox(message: msg),
-            successBox: (msg) => SuccessMessageBox(message: msg),
-            infoBox: (msg) => InfoMessageBox(message: msg),
           ),
 
           // Email TextField

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -27,6 +28,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   AppUser? _appUser;
   bool _isLoading = true;
   String? _errorMessage;
+  final CustomMessageBox _messageBox = CustomMessageBox();
 
   @override
   void initState() {
@@ -57,14 +59,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _updateDisplayName(String newDisplayName) {
-    if (_appUser != null) {
-      setState(() {
-        _appUser = _appUser!.copyWith(
-          displayName: newDisplayName,
-          updatedAt: DateTime.now(),
-        );
-      });
+  void _updateDisplayName(String newDisplayName) async {
+    if (_appUser == null) return;
+
+    // Update local state immediately for better UX
+    setState(() {
+      _appUser = _appUser!.copyWith(
+        displayName: newDisplayName,
+        updatedAt: DateTime.now(),
+      );
+    });
+
+    // Save to Firestore
+    try {
+      final userRepository = AppUserRemoteDataSource();
+      await userRepository.updateDisplayName(_appUser!.uid, newDisplayName);
+
+      // Show success message after successful save
+      if (mounted) {
+        setState(() {
+          _messageBox.setValue(
+            msg: 'Display name updated successfully!',
+            state: CustomMessageState.success,
+          );
+        });
+      }
+    } catch (e) {
+      // Show error message if save failed
+      if (mounted) {
+        setState(() {
+          _messageBox.setValue(
+            msg: 'Failed to update display name. Please try again.',
+            state: CustomMessageState.error,
+          );
+        });
+      }
     }
   }
 
@@ -81,9 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       isUsingBackButton: true,
       customAppBarTitle: Text(
         "Profile",
-        style: AppTextStyles.titleLarge.copyWith(
-          fontWeight: FontWeight.w400,
-        ),
+        style: AppTextStyles.titleLarge.copyWith(fontWeight: FontWeight.w400),
       ),
       body: (context, constraints) {
         if (_isLoading) {
@@ -128,6 +155,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       style: AppTextStyles.headlineMedium.copyWith(
                         color: colorScheme.onSurface,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 4),
                     // Name sebagai tag (@username style)
@@ -136,12 +164,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       style: AppTextStyles.bodyMedium.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               ),
 
               const SizedBox(height: 32),
+
+              // Success/Error notifications
+              _messageBox.showWidget(
+                margin: const EdgeInsets.only(bottom: 16),
+                errorBox: (msg) => ErrorMessageBox(
+                  message: msg,
+                  onDismiss: () => setState(() {
+                    _messageBox.state = CustomMessageState.none;
+                  }),
+                ),
+                successBox: (msg) => SuccessMessageBox(
+                  message: msg,
+                  onDismiss: () => setState(() {
+                    _messageBox.state = CustomMessageState.none;
+                  }),
+                ),
+              ),
 
               // ============================================================
               // ACTION BUTTONS: QR Code & Edit Display Name
@@ -314,17 +360,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         actions: [
-          TextButton(
+          CustomTextButton.text(
+            minWidth: 0,
+            padding: EdgeInsets.symmetric(horizontal: 16),
             onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.labelLarge.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
+            text: "Cancel",
+            textStyle: AppTextStyles.labelLarge.copyWith(
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
           CustomFilledButton.text(
-            text: 'Logout',
+            text: "Logout",
             minWidth: 0,
             backgroundColor: colorScheme.error,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -397,6 +443,7 @@ class _ProfileAvatar extends StatelessWidget {
               style: AppTextStyles.headlineLarge.copyWith(
                 color: colorScheme.onPrimaryContainer,
               ),
+              textAlign: TextAlign.center,
             ),
     );
   }
@@ -607,16 +654,12 @@ class _EditDisplayNameBottomSheetState
       if (mounted) {
         setState(() {
           _isSaving = false;
-          _messageBox.setValue(
-            msg: 'Display name updated!',
-            state: CustomMessageState.success,
-          );
+          _messageBox.state = CustomMessageState.none;
         });
 
         widget.onSaved(newName);
 
         // Auto close after success
-        await Future.delayed(const Duration(milliseconds: 800));
         if (mounted) context.pop();
       }
     } catch (e) {
@@ -690,14 +733,6 @@ class _EditDisplayNameBottomSheetState
                       _messageBox.state = CustomMessageState.none;
                     }),
                   ),
-                  warningBox: (msg) => WarningMessageBox(message: msg),
-                  successBox: (msg) => SuccessMessageBox(
-                    message: msg,
-                    onDismiss: () => setState(() {
-                      _messageBox.state = CustomMessageState.none;
-                    }),
-                  ),
-                  infoBox: (msg) => InfoMessageBox(message: msg),
                 ),
 
                 // Text Field

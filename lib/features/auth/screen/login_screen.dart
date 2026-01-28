@@ -16,12 +16,12 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
-  String? _errorMessage;
+  final CustomMessageBox _messageBox = CustomMessageBox();
 
   Future<void> _handleGoogleSignIn() async {
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
+      _messageBox.state = CustomMessageState.none;
     });
 
     try {
@@ -34,7 +34,10 @@ class _LoginScreenState extends State<LoginScreen> {
         debugPrint("SIGN-IN ERROR: $e");
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Sign-in was cancelled. Please try again.';
+          _messageBox.setValue(
+            msg: "Sign-in was cancelled. Please try again.",
+            state: CustomMessageState.error,
+          );
         });
       }
     }
@@ -89,18 +92,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
 
                   // Error Message
-                  if (_errorMessage != null) ...[
-                    ErrorMessageBox(
-                      message: _errorMessage!,
-                      maxWidth: 400,
-                      onDismiss: () {
-                        setState(() {
-                          _errorMessage = null;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+                  _messageBox.showWidget(
+                    errorBox: (msg) {
+                      return ErrorMessageBox(
+                        message: msg,
+                        margin: EdgeInsets.only(bottom: 16),
+                      );
+                    },
+                  ),
 
                   // Google Sign In Button
                   Container(

@@ -299,24 +299,34 @@ class CustomMessageBox {
 
   Widget showWidget({
     EdgeInsets? margin,
-    required ErrorMessageBox Function(String msg) errorBox,
-    required WarningMessageBox Function(String msg) warningBox,
-    required SuccessMessageBox Function(String msg) successBox,
-    required InfoMessageBox Function(String msg) infoBox,
+    ErrorMessageBox Function(String msg)? errorBox,
+    WarningMessageBox Function(String msg)? warningBox,
+    SuccessMessageBox Function(String msg)? successBox,
+    InfoMessageBox Function(String msg)? infoBox,
   }) {
+    Widget? child;
+
     switch (state) {
       case CustomMessageState.none:
-        return SizedBox();
+        return const SizedBox();
       case CustomMessageState.error:
-        return Container(margin: margin, child: errorBox(message ?? ""));
+        child = errorBox?.call(message ?? "");
+        break;
       case CustomMessageState.warning:
-        return Container(margin: margin, child: warningBox(message ?? ""));
+        child = warningBox?.call(message ?? "");
+        break;
       case CustomMessageState.success:
-        return Container(margin: margin, child: successBox(message ?? ""));
+        child = successBox?.call(message ?? "");
+        break;
       case CustomMessageState.info:
-        return Container(margin: margin, child: infoBox(message ?? ""));
+        child = infoBox?.call(message ?? "");
+        break;
     }
+
+    if (child == null) return const SizedBox();
+    return Container(margin: margin, child: child);
   }
+
 
   void setValue({required String msg, required CustomMessageState state}) {
     message = msg;
