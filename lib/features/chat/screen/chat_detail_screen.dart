@@ -812,6 +812,7 @@ class _OtherUserProfileBottomSheetState
                   margin: const EdgeInsets.only(bottom: 16),
                   infoBox: (msg) => InfoMessageBox(
                     message: msg,
+                    isTransparent: true,
                     onDismiss: () => setState(() {
                       _messageBox.state = CustomMessageState.none;
                     }),

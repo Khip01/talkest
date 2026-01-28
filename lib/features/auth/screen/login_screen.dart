@@ -97,6 +97,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       return ErrorMessageBox(
                         message: msg,
                         margin: EdgeInsets.only(bottom: 16),
+                        onDismiss: () => setState(() {
+                          _messageBox.state = CustomMessageState.none;
+                        }),
                       );
                     },
                   ),

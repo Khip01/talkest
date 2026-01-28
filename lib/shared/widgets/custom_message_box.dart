@@ -9,6 +9,7 @@ class ErrorMessageBox extends StatelessWidget {
   final EdgeInsetsGeometry? margin;
   final EdgeInsetsGeometry? padding;
   final double? maxWidth;
+  final bool isTransparent;
 
   const ErrorMessageBox({
     super.key,
@@ -17,6 +18,7 @@ class ErrorMessageBox extends StatelessWidget {
     this.margin,
     this.padding = const EdgeInsets.all(12),
     this.maxWidth,
+    this.isTransparent = false,
   });
 
   @override
@@ -27,7 +29,9 @@ class ErrorMessageBox extends StatelessWidget {
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(
-        color: colorScheme.errorContainer,
+        color: colorScheme.errorContainer.withValues(
+          alpha: isTransparent ? .65 : 1,
+        ),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
           color: colorScheme.error.withValues(alpha: 0.3),
@@ -80,6 +84,7 @@ class WarningMessageBox extends StatelessWidget {
   final EdgeInsetsGeometry? margin;
   final EdgeInsetsGeometry? padding;
   final double? maxWidth;
+  final bool isTransparent;
 
   const WarningMessageBox({
     super.key,
@@ -88,6 +93,7 @@ class WarningMessageBox extends StatelessWidget {
     this.margin,
     this.padding = const EdgeInsets.all(12),
     this.maxWidth,
+    this.isTransparent = false,
   });
 
   @override
@@ -96,7 +102,9 @@ class WarningMessageBox extends StatelessWidget {
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(
-        color: AppColors.warningContainerColor,
+        color: AppColors.warningContainerColor.withValues(
+          alpha: isTransparent ? 0.65 : 1,
+        ),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
           color: AppColors.warningColor.withValues(alpha: 0.3),
@@ -156,6 +164,7 @@ class SuccessMessageBox extends StatelessWidget {
   final EdgeInsetsGeometry? margin;
   final EdgeInsetsGeometry? padding;
   final double? maxWidth;
+  final bool isTransparent;
 
   const SuccessMessageBox({
     super.key,
@@ -164,6 +173,7 @@ class SuccessMessageBox extends StatelessWidget {
     this.margin,
     this.padding = const EdgeInsets.all(12),
     this.maxWidth,
+    this.isTransparent = false,
   });
 
   @override
@@ -172,7 +182,9 @@ class SuccessMessageBox extends StatelessWidget {
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(
-        color: AppColors.successContainerColor,
+        color: AppColors.successContainerColor.withValues(
+          alpha: isTransparent ? .65 : 1,
+        ),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
           color: AppColors.successColor.withValues(alpha: 0.3),
@@ -232,6 +244,7 @@ class InfoMessageBox extends StatelessWidget {
   final EdgeInsetsGeometry? margin;
   final EdgeInsetsGeometry? padding;
   final double? maxWidth;
+  final bool isTransparent;
 
   const InfoMessageBox({
     super.key,
@@ -240,6 +253,7 @@ class InfoMessageBox extends StatelessWidget {
     this.margin,
     this.padding = const EdgeInsets.all(12),
     this.maxWidth,
+    this.isTransparent = false,
   });
 
   @override
@@ -248,7 +262,9 @@ class InfoMessageBox extends StatelessWidget {
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(
-        color: AppColors.infoContainerColor,
+        color: AppColors.infoContainerColor.withValues(
+          alpha: isTransparent ? .65 : 1,
+        ),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
           color: AppColors.infoColor.withValues(alpha: 0.3),
@@ -326,7 +342,6 @@ class CustomMessageBox {
     if (child == null) return const SizedBox();
     return Container(margin: margin, child: child);
   }
-
 
   void setValue({required String msg, required CustomMessageState state}) {
     message = msg;

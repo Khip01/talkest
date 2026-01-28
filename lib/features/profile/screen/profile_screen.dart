@@ -729,6 +729,7 @@ class _EditDisplayNameBottomSheetState
                   margin: const EdgeInsets.only(bottom: 16),
                   errorBox: (msg) => ErrorMessageBox(
                     message: msg,
+                    isTransparent: true,
                     onDismiss: () => setState(() {
                       _messageBox.state = CustomMessageState.none;
                     }),
