@@ -44,7 +44,7 @@ class AuthRepository {
         lastLoginAt: now,
         updatedAt: now,
       );
-      await _appUserDataSource.updateUserData(existingAppUser);
+      await _appUserDataSource.updateUserData(updatedUser);
       return updatedUser;
     }
 
