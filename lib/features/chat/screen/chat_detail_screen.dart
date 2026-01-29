@@ -799,6 +799,7 @@ class _OtherUserProfileBottomSheetState
                   infoBox: (msg) => InfoMessageBox(
                     message: msg,
                     isTransparent: true,
+                    maxWidth: 400,
                     onDismiss: () => setState(() {
                       _messageBox.state = CustomMessageState.none;
                     }),

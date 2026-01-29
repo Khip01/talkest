@@ -177,6 +177,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 margin: const EdgeInsets.only(bottom: 16),
                 errorBox: (msg) => ErrorMessageBox(
                   message: msg,
+                  maxWidth: 400,
                   onDismiss: () => setState(() {
                     _messageBox.state = CustomMessageState.none;
                   }),
@@ -730,6 +731,7 @@ class _EditDisplayNameBottomSheetState
                   errorBox: (msg) => ErrorMessageBox(
                     message: msg,
                     isTransparent: true,
+                    maxWidth: 400,
                     onDismiss: () => setState(() {
                       _messageBox.state = CustomMessageState.none;
                     }),
