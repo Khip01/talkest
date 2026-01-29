@@ -13,6 +13,7 @@ import 'package:talkest/features/chat/screen/chat_detail_screen.dart';
 import 'package:talkest/features/chat/screen/chat_list_screen.dart';
 import 'package:talkest/features/profile/screen/profile_screen.dart';
 import 'package:talkest/features/auth/screen/qr_scanner_screen.dart';
+import 'package:talkest/shared/widgets/custom_transition.dart';
 
 GoRouter createRouter(AuthRepository authRepository) {
   return GoRouter(
@@ -46,38 +47,56 @@ GoRouter createRouter(AuthRepository authRepository) {
       GoRoute(
         name: 'login',
         path: '/login',
-        builder: (_, _) => const LoginScreen(),
+        pageBuilder: (context, state) => CustomTransition.fade(
+          context: context,
+          state: state,
+          child: const LoginScreen(),
+        ),
       ),
       GoRoute(
         name: 'root',
         path: '/',
-        builder: (_, _) => const ChatListScreen(),
+        pageBuilder: (context, state) => CustomTransition.slide(
+          context: context,
+          state: state,
+          child: const ChatListScreen(),
+        ),
         routes: [
           GoRoute(
             name: 'chat_detail',
             path: 'chat/:id',
-            builder: (context, state) {
+            pageBuilder: (context, state) {
               final String targetUserId = state.pathParameters['id'] ?? '';
-              return BlocProvider(
-                create: (context) => ChatDetailBloc(
-                  authRepository: context.read<AuthRepository>(),
-                  chatRepository: ChatRepository(),
-                  messageRepository: MessageRepository(),
-                  userRepository: AppUserRemoteDataSource(),
+              return CustomTransition.slideFade(
+                context: context,
+                state: state,
+                child: BlocProvider(
+                  create: (context) => ChatDetailBloc(
+                    authRepository: context.read<AuthRepository>(),
+                    chatRepository: ChatRepository(),
+                    messageRepository: MessageRepository(),
+                    userRepository: AppUserRemoteDataSource(),
+                  ),
+                  child: ChatDetailScreen(targetUserId: targetUserId),
                 ),
-                child: ChatDetailScreen(targetUserId: targetUserId),
               );
             },
           ),
           GoRoute(
             name: 'qr_scan',
             path: 's',
-            builder: (_, _) => const QRScannerScreen(),
+            pageBuilder: (context, state) => CustomTransition.none(
+              state: state,
+              child: const QRScannerScreen(),
+            ),
           ),
           GoRoute(
             name: 'profile',
             path: '/profile',
-            builder: (_, _) => const ProfileScreen(),
+            pageBuilder: (context, state) => CustomTransition.none(
+              state: state,
+              child: const ProfileScreen(),
+            ),
           ),
         ],
       ),
