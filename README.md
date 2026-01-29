@@ -1,54 +1,13 @@
-# talkest
+# gh-pages
 
-Talkest is a messaging platform featuring an embedded Flutter Web chat widget, Firebase-based authentication with Google Sign-In, real-time messaging, and push notifications for mobile clients.
+### 🕵️‍♂️WHERE did these files come from?
+These files come from the build results of the flutter web application project into several files that can be executed by the website. 
 
-## Development Setup
+<br>
 
-### Prerequisites
-- Flutter SDK
-- Firebase project with Authentication enabled
-- Google OAuth 2.0 Client ID (Flutter Web Only)
-
-### Getting OAuth 2.0 Client ID
-
-1. **Via Firebase Console** (Recommended):
-   - Open [Firebase Console](https://console.firebase.google.com)
-   - Select your project → Project Settings
-   - Add Web app (if not already added)
-   - Client ID will be auto-generated in Google Cloud Console
-
-2. **Manual Setup**:
-   - Go to [Google Cloud Console](https://console.cloud.google.com)
-   - Navigate to **APIs & Services** → **Credentials**
-   - Create **OAuth client ID** → Select **Web application**
-   - Configure:
-     - **Authorized JavaScript origins**:
-       - `http://localhost`
-       - `http://localhost:5000`
-       - `https://your-domain.firebaseapp.com` (production)
-     - **Authorized redirect URIs**:
-       - `https://your-domain.firebaseapp.com/__/auth/handler`
-   - Copy the generated **Client ID**
-
-### Running the App
-
-**Web (Development):**
-```bash
-flutter run -d chrome --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_CLIENT_ID.apps.googleusercontent.com
-```
-
-**Mobile (Android/iOS):**
-```bash
-flutter run
-```
-
-**Building for Production:**
-```bash
-flutter build web --wasm --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_CLIENT_ID.apps.googleusercontent.com
-```
-
-## Resources
-
-- [Flutter Documentation](https://docs.flutter.dev/)
-- [Firebase Setup Guide](https://firebase.google.com/docs/flutter/setup)
-- [Google Sign-In for Flutter](https://pub.dev/packages/google_sign_in)
+## 📋Steps 
+Here is how to generate the following files
+- Go to the flutter_web_app project directory ```cd flutter_web_app```
+- Run the ```flutter build web --wasm``` command _(more details in the [Flutter Docs - Web Build](https://docs.flutter.dev/platform-integration/web/renderers#command-line-options))_
+- This will create a new folder ```build/web/``` and it's content
+- Then finally all the contents of the ```build/web``` folder will be placed in this ```gh-pages``` branch
