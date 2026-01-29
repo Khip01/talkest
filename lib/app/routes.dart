@@ -1,9 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:talkest/features/auth/data/auth_repository.dart';
+import 'package:talkest/features/auth/data/datasource/datasources.dart';
 import 'package:talkest/features/auth/screen/login_screen.dart';
+import 'package:talkest/features/chat/bloc/chat_detail/chat_detail_bloc.dart';
+import 'package:talkest/features/chat/data/chat_repository.dart';
+import 'package:talkest/features/chat/data/message_repository.dart';
 import 'package:talkest/features/chat/screen/chat_detail_screen.dart';
 import 'package:talkest/features/chat/screen/chat_list_screen.dart';
 import 'package:talkest/features/profile/screen/profile_screen.dart';
@@ -53,7 +58,15 @@ GoRouter createRouter(AuthRepository authRepository) {
             path: 'chat/:id',
             builder: (context, state) {
               final String targetUserId = state.pathParameters['id'] ?? '';
-              return ChatDetailScreen(targetUserId: targetUserId);
+              return BlocProvider(
+                create: (context) => ChatDetailBloc(
+                  authRepository: context.read<AuthRepository>(),
+                  chatRepository: ChatRepository(),
+                  messageRepository: MessageRepository(),
+                  userRepository: AppUserRemoteDataSource(),
+                ),
+                child: ChatDetailScreen(targetUserId: targetUserId),
+              );
             },
           ),
           GoRoute(

@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +13,7 @@ import 'package:talkest/app/theme/text_styles.dart';
 import 'package:talkest/features/auth/data/auth_repository.dart';
 import 'package:talkest/features/auth/data/datasource/app_user_remote_data_source.dart';
 import 'package:talkest/features/auth/models/app_user.dart';
+import 'package:talkest/features/chat/bloc/chat_detail/chat_detail_bloc.dart';
 import 'package:talkest/features/chat/data/chat_repository.dart';
 import 'package:talkest/features/chat/data/message_repository.dart';
 import 'package:talkest/features/chat/models/message.dart';
@@ -30,28 +33,15 @@ class ChatDetailScreen extends StatefulWidget {
 }
 
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
-  final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final MessageRepository _messageRepository = MessageRepository();
-  final ChatRepository _chatRepository = ChatRepository();
-  final AppUserRemoteDataSource _userRepository = AppUserRemoteDataSource();
+  final FocusNode _messageInputFocusNode = FocusNode();
 
   StickyDateController? _stickyDateController;
-  final Map<String, GlobalKey> _messageKeys = {};
-  final Map<String, DateTime> _messageDates = {};
-
-  bool _isSending = false;
-  bool _isLoading = true;
-  String? _errorMessage;
-
-  // Data yang akan di-load
-  String? _chatId;
-  AppUser? _otherUser;
 
   @override
   void initState() {
     super.initState();
-    _loadChatData();
+    context.read<ChatDetailBloc>().add(LoadChatDetail(widget.targetUserId));
   }
 
   @override
@@ -69,133 +59,303 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _stickyDateController!.attachScrollController(_scrollController);
   }
 
-  Future<void> _loadChatData() async {
-    try {
-      // 1. Get current user
-      final currentUser = context.read<AuthRepository>().currentUser;
-      if (currentUser == null) {
-        _showErrorAndRedirect('You must be logged in');
-        return;
-      }
-
-      // 2. Validate: tidak bisa chat dengan diri sendiri
-      if (widget.targetUserId == currentUser.uid) {
-        _showErrorAndRedirect('You cannot chat with yourself');
-        return;
-      }
-
-      // 3. Fetch target user data
-      final targetUser = await _userRepository.getUserData(widget.targetUserId);
-      if (targetUser == null) {
-        _showErrorAndRedirect('User not found');
-        return;
-      }
-
-      // 4. Get or create chat
-      final chat = await _chatRepository.getOrCreateDirectChat(
-        currentUser.uid,
-        targetUser.uid,
-      );
-
-      // 5. Update state dengan data yang sudah di-load
-      if (mounted) {
-        setState(() {
-          _chatId = chat.id;
-          _otherUser = targetUser;
-          _isLoading = false;
-        });
-
-        // Mark as read setelah data loaded
-        _markAsRead();
-      }
-    } catch (e) {
-      debugPrint('Error loading chat: $e');
-      _showErrorAndRedirect('Failed to load chat');
-    }
-  }
-
-  void _showErrorAndRedirect(String message) {
-    if (mounted) {
-      setState(() {
-        _errorMessage = message;
-        _isLoading = false;
-      });
-
-      // Show snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-
-      // Redirect ke root setelah delay
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          context.go('/');
-        }
-      });
-    }
-  }
-
   @override
   void dispose() {
-    _messageController.dispose();
     _scrollController.dispose();
-    _stickyDateController!.dispose();
+    _stickyDateController?.dispose();
+    _messageInputFocusNode.dispose();
     super.dispose();
   }
 
-  Future<void> _markAsRead() async {
-    final currentUser = context.read<AuthRepository>().currentUser;
-    if (currentUser != null && _chatId != null) {
-      await _chatRepository.markAsRead(_chatId!, currentUser.uid);
+  void _showOtherUserProfile(BuildContext context, AppUser otherUser) {
+    // unfocus textfield first
+    if (_messageInputFocusNode.hasFocus) {
+      _messageInputFocusNode.unfocus();
     }
+
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (!mounted) return;
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        // disable autofocus after closing bottom sheet
+        enableDrag: true,
+        isDismissible: true,
+        builder: (_) => _OtherUserProfileBottomSheet(appUser: otherUser),
+      ).then((_) {
+        // make sure to still unfocus
+        if (_messageInputFocusNode.hasFocus) {
+          _messageInputFocusNode.unfocus();
+        }
+      });
+    });
   }
 
-  void _scrollToBottom() {
-    if (!_scrollController.hasClients) return;
+  @override
+  Widget build(BuildContext context) {
+    final currentUser = context.read<AuthRepository>().currentUser;
 
-    _scrollController.animateTo(
-      0.0,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
+    if (currentUser == null) {
+      return const Scaffold(body: Center(child: Text('Not authenticated')));
+    }
+
+    return BlocConsumer<ChatDetailBloc, ChatDetailState>(
+      listener: (context, state) {
+        // Redirect
+        if (state is ChatDetailError && state.shouldRedirect) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) context.go('/');
+          });
+        }
+      },
+      builder: (context, state) {
+        // LOADING STATE
+        if (state is ChatDetailLoading) {
+          return _buildLoadingScaffold(context);
+        }
+
+        // ERROR STATE
+        if (state is ChatDetailError) {
+          return _buildErrorScaffold(context, state.message);
+        }
+
+        // READY STATE
+        if (state is ChatDetailReady) {
+          return _buildChatScaffold(context, state, currentUser);
+        }
+
+        return const Scaffold(body: Center(child: Text('Unknown state')));
+      },
     );
   }
 
-  Future<void> _sendMessage() async {
-    final text = _messageController.text.trim();
-    if (text.isEmpty || _isSending) return;
+  Widget _buildLoadingScaffold(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
 
-    final currentUser = context.read<AuthRepository>().currentUser;
-    if (currentUser == null) return;
-
-    setState(() => _isSending = true);
-
-    try {
-      await _messageRepository.sendMessage(
-        chatId: _chatId!,
-        senderId: currentUser.uid,
-        text: text,
-        otherUserId: _otherUser!.uid,
-      );
-
-      _messageController.clear();
-
-      // Wait a bit for the stream to update, then scroll
-      Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to send message: $e')));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSending = false);
-      }
-    }
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        titleSpacing: 0,
+        leadingWidth: 56 + 4,
+        leading: Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: CustomTextButton.icon(
+            minWidth: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
+        ),
+        title: Row(
+          children: [
+            ClipOval(
+              child: Container(
+                color: colorScheme.outline,
+                height: 36,
+                width: 36,
+                child: Icon(Icons.person, color: colorScheme.outlineVariant),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                "Loading...",
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.titleMedium,
+              ),
+            ),
+          ],
+        ),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              strokeWidth: 2,
+              color: colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Loading chat...',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
+
+  Widget _buildErrorScaffold(BuildContext context, String message) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Oops, error')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: Theme.of(context).textTheme.bodyLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Redirecting...',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChatScaffold(
+    BuildContext context,
+    ChatDetailReady state,
+    User currentUser,
+  ) {
+    return AppScaffold(
+      isUsingSafeArea: false,
+      customAppBar: AppBar(
+        backgroundColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Container(
+              color: Theme.of(
+                context,
+              ).colorScheme.surface.withValues(alpha: 0.4),
+              child: InkWell(
+                onLongPress: () {},
+                onTap: () => _showOtherUserProfile(context, state.otherUser),
+              ),
+            ),
+          ),
+        ),
+        titleSpacing: AppScaffold.appBarDefaultConfig.titleSpacing,
+        leadingWidth: AppScaffold.appBarDefaultConfig.leadingWidth,
+        leading: AppScaffold.appBarDefaultConfig.leading(context),
+        title: IgnorePointer(
+          ignoring: true,
+          child: Row(
+            children: [
+              state.otherUser.photoUrl.isNotEmpty
+                  ? ClipOval(
+                      child: CachedNetworkImage(
+                        imageUrl: state.otherUser.photoUrl,
+                        width: 36,
+                        height: 36,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => const SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        errorWidget: (context, url, error) => CircleAvatar(
+                          radius: 18,
+                          child: Text(
+                            state.otherUser.displayName.isNotEmpty
+                                ? state.otherUser.displayName[0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ),
+                    )
+                  : SizedBox(
+                      height: 36,
+                      width: 36,
+                      child: CircleAvatar(
+                        radius: 18,
+                        child: Text(
+                          state.otherUser.displayName.isNotEmpty
+                              ? state.otherUser.displayName[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  state.otherUser.displayName,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.titleMedium,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      body: (context, constraints) {
+        return Column(
+          children: [
+            Expanded(
+              child: _MessageList(
+                chatId: state.chatId,
+                currentUser: currentUser,
+                messages: state.messages,
+                stickyDateController: _stickyDateController!,
+                scrollController: _scrollController,
+              ),
+            ),
+            _MessageInput(
+              chatId: state.chatId,
+              otherUser: state.otherUser,
+              scrollController: _scrollController,
+              focusNode: _messageInputFocusNode,
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// =============================================================================
+// MESSAGE LIST
+// =============================================================================
+class _MessageList extends StatelessWidget {
+  final String chatId;
+  final User currentUser;
+  final List<Message> messages;
+  final StickyDateController stickyDateController;
+  final ScrollController scrollController;
+
+  _MessageList({
+    super.key,
+    required this.chatId,
+    required this.currentUser,
+    required this.messages,
+    required this.stickyDateController,
+    required this.scrollController,
+  });
 
   /// Group messages by date (on DESC-ordered list, no manual reversal)
   List<_MessageGroup> _groupMessagesByDate(List<Message> messages) {
@@ -249,6 +409,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     int index,
     List<_MessageGroup> groups,
     String currentUserId,
+    Map<String, GlobalKey> messageKeys,
   ) {
     int itemIndex = 0;
 
@@ -260,7 +421,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           final message = group.messages[i];
           final isCurrentUser = message.senderId == currentUserId;
           return KeyedSubtree(
-            key: _messageKeys[message.id],
+            key: messageKeys[message.id],
             child: MessageBubble(
               message: message,
               isCurrentUser: isCurrentUser,
@@ -280,368 +441,193 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     return const SizedBox.shrink();
   }
 
-  void _showOtherUserProfile(BuildContext context, AppUser otherUser) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      builder: (_) => _OtherUserProfileBottomSheet(appUser: otherUser),
+  @override
+  Widget build(BuildContext context) {
+    if (messages.isEmpty) {
+      return Center(
+        child: Text(
+          'No messages yet.\nSay hi! 👋',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      );
+    }
+
+    final groupedMessages = _groupMessagesByDate(messages);
+
+    // Create keys
+    final messageKeys = <String, GlobalKey>{};
+    final messageDates = <String, DateTime>{};
+    for (final message in messages) {
+      messageKeys[message.id] = GlobalKey();
+      final messageDate = DateTime(
+        message.createdAt.year,
+        message.createdAt.month,
+        message.createdAt.day,
+      );
+      messageDates[message.id] = messageDate;
+    }
+
+    // Update controller with message keys and dates
+    stickyDateController.updateMessageKeys(messageKeys, messageDates);
+
+    return Builder(
+      builder: (context) {
+        final topPadding = MediaQuery.of(context).padding.top;
+
+        return Stack(
+          children: [
+            ListView.builder(
+              controller: scrollController,
+              reverse: true,
+              padding: EdgeInsets.only(top: topPadding, bottom: 8),
+              itemCount: _calculateTotalItems(groupedMessages),
+              itemBuilder: (context, index) {
+                return _buildListItem(
+                  context,
+                  index,
+                  groupedMessages,
+                  currentUser.uid,
+                  messageKeys,
+                );
+              },
+            ),
+
+            Positioned(
+              top: topPadding + 4,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(
+                child: StickyDateOverlay(controller: stickyDateController),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// =============================================================================
+// MESSAGE INPUT
+// =============================================================================
+class _MessageInput extends StatefulWidget {
+  final String chatId;
+  final AppUser otherUser;
+  final ScrollController scrollController;
+  final FocusNode focusNode;
+
+  const _MessageInput({
+    super.key,
+    required this.chatId,
+    required this.otherUser,
+    required this.scrollController,
+    required this.focusNode,
+  });
+
+  @override
+  State<_MessageInput> createState() => _MessageInputState();
+}
+
+class _MessageInputState extends State<_MessageInput> {
+  final TextEditingController _messageController = TextEditingController();
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendMessage(BuildContext context) async {
+    final text = _messageController.text;
+    if (text.trim().isEmpty) return;
+
+    context.read<ChatDetailBloc>().add(SendMessageRequested(text));
+    _messageController.clear();
+
+    // after sending message request keyboard to still focus
+    widget.focusNode.requestFocus();
+
+    // Scroll to bottom
+    Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
+  }
+
+  void _scrollToBottom() {
+    if (!widget.scrollController.hasClients) return;
+
+    widget.scrollController.animateTo(
+      0.0,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = context.read<AuthRepository>().currentUser;
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-
-    if (currentUser == null) {
-      return const Scaffold(body: Center(child: Text('Not authenticated')));
-    }
-
-    // Show loading state
-    if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          titleSpacing: 0,
-          leadingWidth: 56 + 4,
-          leading: Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: CustomTextButton.icon(
-              minWidth: 0,
-              padding: EdgeInsets.symmetric(horizontal: 4),
-              icon: Icon(Icons.arrow_back),
-              onPressed: () => context.pop(),
-            ),
+    return Builder(
+      builder: (context) {
+        final bottomPadding = MediaQuery.of(context).padding.bottom;
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
+            // boxShadow: [
+            //   BoxShadow(
+            //     color: Colors.black.withValues(alpha: 0.05),
+            //     blurRadius: 4,
+            //     offset: const Offset(0, -2),
+            //   ),
+            // ],
           ),
-          title: Row(
-            children: [
-              ClipOval(
-                child: Container(
-                  color: colorScheme.outline,
-                  height: 36,
-                  width: 36,
-                  child: Icon(Icons.person, color: colorScheme.outlineVariant),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  "Loading...",
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.titleMedium,
-                ),
-              ),
-            ],
+          padding: EdgeInsets.only(
+            left: 8,
+            right: 8,
+            top: 8,
+            bottom: bottomPadding + 8,
           ),
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Loading chat...',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // Show error state
-    if (_errorMessage != null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Oops, error')),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 64,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                _errorMessage!,
-                style: Theme.of(context).textTheme.bodyLarge,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Redirecting...',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // Normal state - data sudah loaded
-    return AppScaffold(
-      isUsingSafeArea: false,
-      customAppBar: AppBar(
-        backgroundColor: Colors.transparent,
-        shadowColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        flexibleSpace: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-            child: Container(
-              color: Theme.of(
-                context,
-              ).colorScheme.surface.withValues(alpha: 0.4),
-              child: InkWell(
-                onLongPress: () {},
-                onTap: () => _showOtherUserProfile(context, _otherUser!),
-              ),
-            ),
-          ),
-        ),
-        titleSpacing: AppScaffold.appBarDefaultConfig.titleSpacing,
-        leadingWidth: AppScaffold.appBarDefaultConfig.leadingWidth,
-        leading: AppScaffold.appBarDefaultConfig.leading(context),
-        title: IgnorePointer(
-          ignoring: true,
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _otherUser!.photoUrl.isNotEmpty
-                  ? ClipOval(
-                      child: CachedNetworkImage(
-                        imageUrl: _otherUser!.photoUrl,
-                        width: 36,
-                        height: 36,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => const SizedBox(
-                          width: 36,
-                          height: 36,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        errorWidget: (context, url, error) => CircleAvatar(
-                          radius: 18,
-                          child: Text(
-                            _otherUser!.displayName.isNotEmpty
-                                ? _otherUser!.displayName[0].toUpperCase()
-                                : '?',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ),
-                    )
-                  : SizedBox(
-                      height: 36,
-                      width: 36,
-                      child: CircleAvatar(
-                        radius: 18,
-                        child: Text(
-                          _otherUser!.displayName.isNotEmpty
-                              ? _otherUser!.displayName[0].toUpperCase()
-                              : '?',
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ),
-              const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  _otherUser!.displayName,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.titleMedium,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      body: (context, constraints) {
-        return Column(
-          children: [
-            // Messages list
-            Expanded(
-              child: StreamBuilder<List<Message>>(
-                stream: _messageRepository.getMessagesForChat(_chatId!),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  }
-
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    );
-                  }
-
-                  final messages = snapshot.data ?? [];
-
-                  if (messages.isEmpty) {
-                    return Center(
-                      child: Text(
-                        'No messages yet.\nSay hi! 👋',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    );
-                  }
-
-                  // Auto-scroll to bottom when new messages arrive
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _scrollToBottom();
-                  });
-
-                  // Group messages by date (DESC list, no manual reversal)
-                  final groupedMessages = _groupMessagesByDate(messages);
-
-                  // Create GlobalKeys for ALL messages and track their dates
-                  _messageKeys.clear();
-                  _messageDates.clear();
-                  for (final message in messages) {
-                    _messageKeys[message.id] = GlobalKey();
-                    final messageDate = DateTime(
-                      message.createdAt.year,
-                      message.createdAt.month,
-                      message.createdAt.day,
-                    );
-                    _messageDates[message.id] = messageDate;
-                  }
-
-                  // Update controller with message keys and dates
-                  _stickyDateController!.updateMessageKeys(
-                    _messageKeys,
-                    _messageDates,
-                  );
-
-                  return Stack(
-                    children: [
-                      // Message list with date dividers
-                      ListView.builder(
-                        controller: _scrollController,
-                        reverse: true,
-                        padding: EdgeInsets.only(
-                          top: MediaQuery.of(context).padding.top,
-                          bottom: 8,
-                        ),
-                        itemCount: _calculateTotalItems(groupedMessages),
-                        itemBuilder: (context, index) {
-                          return _buildListItem(
-                            context,
-                            index,
-                            groupedMessages,
-                            currentUser.uid,
-                          );
-                        },
-                      ),
-
-                      // Floating sticky date overlay
-                      Positioned(
-                        top: MediaQuery.of(context).padding.top + 4,
-                        left: 0,
-                        right: 0,
-                        child: IgnorePointer(
-                          child: StickyDateOverlay(
-                            controller: _stickyDateController!,
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-
-            // Message input
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surface.withValues(alpha: 0.4),
-                // boxShadow: [
-                //   BoxShadow(
-                //     color: Colors.black.withValues(alpha: 0.05),
-                //     blurRadius: 4,
-                //     offset: const Offset(0, -2),
-                //   ),
-                // ],
-              ),
-              padding: EdgeInsets.only(
-                left: 8,
-                right: 8,
-                top: 8,
-                bottom: MediaQuery.of(context).padding.bottom + 8,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    // child: TextField(
-                    //   controller: _messageController,
-                    //   decoration: InputDecoration(
-                    //     hintText: 'Type a message...',
-                    //     border: OutlineInputBorder(
-                    //       borderRadius: BorderRadius.circular(24),
-                    //       borderSide: BorderSide.none,
-                    //     ),
-                    //     filled: true,
-                    //     fillColor: Theme.of(
-                    //       context,
-                    //     ).colorScheme.surfaceContainerHighest,
-                    //     contentPadding: const EdgeInsets.symmetric(
-                    //       horizontal: 16,
-                    //       vertical: 10,
-                    //     ),
-                    //   ),
-                    //   maxLines: null,
-                    //   textCapitalization: TextCapitalization.sentences,
-                    //   onSubmitted: (_) => _sendMessage(),
+                child: TextField(
+                  focusNode: widget.focusNode,
+                  controller: _messageController,
+                  keyboardType: TextInputType.multiline,
+                  minLines: 1,
+                  maxLines: 8,
+                  decoration: InputDecoration(
+                    // labelText: 'Google email',
+                    hintText: 'Type a message...',
+                    // prefixIcon: Padding(
+                    //   padding: const EdgeInsets.symmetric(horizontal: 4),
+                    //   child: const Icon(Icons.email_outlined),
                     // ),
-                    child: TextField(
-                      controller: _messageController,
-                      keyboardType: TextInputType.multiline,
-                      minLines: 1,
-                      maxLines: 8,
-                      decoration: InputDecoration(
-                        // labelText: 'Google email',
-                        hintText: 'Type a message...',
-                        // prefixIcon: Padding(
-                        //   padding: const EdgeInsets.symmetric(horizontal: 4),
-                        //   child: const Icon(Icons.email_outlined),
-                        // ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4),
-                          borderSide: const BorderSide(
-                            color: Colors.transparent,
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4),
-                          borderSide: const BorderSide(
-                            color: Colors.transparent,
-                          ),
-                        ),
-                      ),
-                      textInputAction: TextInputAction.newline,
-                      // onSubmitted: ,
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: Colors.transparent),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: const BorderSide(color: Colors.transparent),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  _isSending
+                  textInputAction: TextInputAction.newline,
+                ),
+              ),
+              const SizedBox(width: 8),
+              BlocBuilder<ChatDetailBloc, ChatDetailState>(
+                buildWhen: (previous, current) {
+                  if (previous is ChatDetailReady &&
+                      current is ChatDetailReady) {
+                    return previous.isSending != current.isSending;
+                  }
+                  return true;
+                },
+                builder: (context, state) {
+                  final isSending = state is ChatDetailReady && state.isSending;
+
+                  return isSending
                       ? SizedBox(
                           width: 20,
                           height: 20,
@@ -657,13 +643,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                             color: Theme.of(context).colorScheme.onPrimary,
                           ),
                           minWidth: 0,
-                          padding: EdgeInsets.all(15),
-                          onPressed: _sendMessage,
-                        ),
-                ],
+                          padding: const EdgeInsets.all(15),
+                          onPressed: () => _sendMessage(context),
+                        );
+                },
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );

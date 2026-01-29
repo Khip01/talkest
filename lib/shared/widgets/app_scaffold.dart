@@ -105,7 +105,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                     horizontal: constraints.maxWidth / 6,
                   ),
                   child: Align(
-                    alignment: AlignmentGeometry.bottomCenter,
+                    alignment: Alignment.bottomCenter,
                     child: Container(
                       constraints: BoxConstraints(maxWidth: 300),
                       child: Text(

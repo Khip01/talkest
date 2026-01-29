@@ -1,14 +1,13 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:talkest/app/theme/text_styles.dart';
 import 'package:talkest/features/auth/data/auth_repository.dart';
 import 'package:talkest/features/auth/data/datasource/datasources.dart';
-import 'package:talkest/features/auth/models/app_user.dart';
+import 'package:talkest/features/chat/bloc/chat_list/chat_list_bloc.dart';
 import 'package:talkest/features/chat/data/chat_repository.dart';
-import 'package:talkest/features/chat/models/chat.dart';
 import 'package:talkest/features/chat/widget/chat_tile.dart';
 import 'package:talkest/features/chat/widget/start_chat_bottom_sheet.dart';
 import 'package:talkest/shared/widgets/app_scaffold.dart';
@@ -19,14 +18,27 @@ class ChatListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => ChatListBloc(
+        authRepository: context.read<AuthRepository>(),
+        chatRepository: ChatRepository(),
+        userRepository: AppUserRemoteDataSource(),
+      )..add(const LoadChatList()),
+      child: const _ChatListView(),
+    );
+  }
+}
+
+class _ChatListView extends StatelessWidget {
+  const _ChatListView();
+
+  @override
+  Widget build(BuildContext context) {
     final currentUser = context.read<AuthRepository>().currentUser;
 
     if (currentUser == null) {
       return const Scaffold(body: Center(child: Text("Not authenticated...")));
     }
-
-    final chatRepository = ChatRepository();
-    final userRepository = AppUserRemoteDataSource();
 
     return AppScaffold(
       floatingActionButton: CustomFilledButton.text(
@@ -59,26 +71,21 @@ class ChatListScreen extends StatelessWidget {
         },
       ),
       body: (context, constraints) {
-        return StreamBuilder<List<Chat>>(
-          stream: chatRepository.getChatsForUser(currentUser.uid),
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              debugPrint("Error: ${snapshot.error}");
-              return Center(
-                child: Text(
-                  "There is a technical issue when retrieving your entire chat history.",
-                  textAlign: TextAlign.center,
-                ),
+        return BlocBuilder<ChatListBloc, ChatListState>(
+          builder: (context, state) {
+            if (state is ChatListLoading) {
+              return const Center(
+                child: CircularProgressIndicator(strokeWidth: 2),
               );
             }
 
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+            if (state is ChatListError) {
+              return Center(
+                child: Text(state.message, textAlign: TextAlign.center),
+              );
             }
 
-            final chats = snapshot.data ?? [];
-
-            if (chats.isEmpty) {
+            if (state is ChatListEmpty) {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -107,59 +114,28 @@ class ChatListScreen extends StatelessWidget {
               );
             }
 
-            return ListView.builder(
-              itemCount: chats.length,
-              itemBuilder: (context, index) {
-                final chat = chats[index];
-                final otherUserId = chat.getOtherParticipantId(currentUser.uid);
-                final ColorScheme colorScheme = Theme.of(context).colorScheme;
+            if (state is ChatListLoaded) {
+              return ListView.builder(
+                itemCount: state.items.length,
+                itemBuilder: (context, index) {
+                  final item = state.items[index];
 
-                return FutureBuilder<AppUser?>(
-                  future: userRepository.getUserData(otherUserId),
-                  builder: (context, userSnapshot) {
-                    if (!userSnapshot.hasData) {
-                      return ListTile(
-                        leading: ClipOval(
-                          child: Container(
-                            color: colorScheme.outline,
-                            height: 48,
-                            width: 48,
-                            child: Icon(
-                              Icons.person,
-                              color: colorScheme.outlineVariant,
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          "Loading...",
-                          style: AppTextStyles.titleSmall.copyWith(
-                            fontWeight: FontWeight.w400,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Text("..."),
+                  return ChatTile(
+                    chat: item.chat,
+                    otherUser: item.otherUser,
+                    currentUserId: currentUser.uid,
+                    onTap: () {
+                      context.goNamed(
+                        'chat_detail',
+                        pathParameters: {'id': item.otherUser.uid},
                       );
-                    }
+                    },
+                  );
+                },
+              );
+            }
 
-                    final otherUser = userSnapshot.data!;
-
-                    return ChatTile(
-                      chat: chat,
-                      otherUser: otherUser,
-                      currentUserId: currentUser.uid,
-                      onTap: () {
-                        // context.push('/chat/${otherUserId}');
-                        context.goNamed(
-                          'chat_detail',
-                          pathParameters: {'id': otherUserId},
-                        );
-                      },
-                    );
-                  },
-                );
-              },
-            );
+            return const SizedBox.shrink();
           },
         );
       },
