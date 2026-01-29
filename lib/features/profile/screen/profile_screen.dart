@@ -132,7 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 8),
 
@@ -177,7 +177,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 margin: const EdgeInsets.only(bottom: 16),
                 errorBox: (msg) => ErrorMessageBox(
                   message: msg,
-                  maxWidth: 400,
                   onDismiss: () => setState(() {
                     _messageBox.state = CustomMessageState.none;
                   }),
@@ -692,7 +691,7 @@ class _EditDisplayNameBottomSheetState
             padding: const EdgeInsets.all(16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Header
                 Row(
@@ -731,7 +730,6 @@ class _EditDisplayNameBottomSheetState
                   errorBox: (msg) => ErrorMessageBox(
                     message: msg,
                     isTransparent: true,
-                    maxWidth: 400,
                     onDismiss: () => setState(() {
                       _messageBox.state = CustomMessageState.none;
                     }),

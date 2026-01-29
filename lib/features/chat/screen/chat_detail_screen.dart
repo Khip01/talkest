@@ -699,7 +699,7 @@ class _OtherUserProfileBottomSheetState
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Header with close button
                 Row(
@@ -799,7 +799,6 @@ class _OtherUserProfileBottomSheetState
                   infoBox: (msg) => InfoMessageBox(
                     message: msg,
                     isTransparent: true,
-                    maxWidth: 400,
                     onDismiss: () => setState(() {
                       _messageBox.state = CustomMessageState.none;
                     }),

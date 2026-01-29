@@ -125,7 +125,6 @@ class _StartChatBottomSheetState extends State<StartChatBottomSheet> {
             errorBox: (msg) => ErrorMessageBox(
               message: msg,
               isTransparent: true,
-              maxWidth: 400,
               onDismiss: () => setState(() {
                 validationBox.state = CustomMessageState.none;
               }),
