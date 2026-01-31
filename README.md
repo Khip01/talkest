@@ -1,6 +1,11 @@
 # talkest
 
-Talkest is a messaging platform featuring an embedded Flutter Web chat widget, Firebase-based authentication with Google Sign-In, real-time messaging, and push notifications for mobile clients.
+Talkest is a messaging platform featuring an embedded Flutter Web chat widget, Firebase-based authentication with Google Sign-In, and real-time messaging.
+
+> [!NOTE] 
+> Push notifications are currently not implemented.  
+> A complete push notification flow requires Firebase Cloud Functions to trigger Firebase Cloud Messaging (FCM), which depends on the Blaze (pay-as-you-go) plan.
+
 
 ## Development Setup
 
