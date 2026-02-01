@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:talkest/app/theme/text_styles.dart';
 import 'package:talkest/features/auth/data/auth_repository.dart';
 import 'package:talkest/features/auth/data/datasource/datasources.dart';
 import 'package:talkest/features/auth/models/app_user.dart';
+import 'package:talkest/features/chat/bloc/contact_list/contact_list_bloc.dart';
+import 'package:talkest/features/chat/data/contact_repository.dart';
+import 'package:talkest/features/chat/widget/contacts_bottom_sheet.dart';
 import 'package:talkest/shared/widgets/custom_text_button.dart';
 import 'package:talkest/shared/widgets/custom_filled_button.dart';
 import 'package:talkest/shared/widgets/custom_message_box.dart';
@@ -99,6 +103,31 @@ class _StartChatBottomSheetState extends State<StartChatBottomSheet> {
     context.goNamed('qr_scan');
   }
 
+  void _showContactsList(BuildContext context) {
+    final currentUser = context.read<AuthRepository>().currentUser;
+    if (currentUser == null) return;
+
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (!mounted) return;
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        enableDrag: true,
+        isDismissible: true,
+        builder: (_) => BlocProvider(
+          create: (context) => ContactListBloc(
+            contactRepository: ContactRepository(),
+            currentUserId: currentUser.uid,
+          )..add(const LoadContacts()),
+          child: const ContactsBottomSheet(),
+        ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -113,10 +142,7 @@ class _StartChatBottomSheetState extends State<StartChatBottomSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Title
-          Text(
-            'Start New Chat',
-            style: AppTextStyles.titleLarge,
-          ),
+          Text('Start New Chat', style: AppTextStyles.titleLarge),
           const SizedBox(height: 24),
 
           // Message Box Validation
@@ -131,28 +157,58 @@ class _StartChatBottomSheetState extends State<StartChatBottomSheet> {
             ),
           ),
 
-          // Email TextField
-          TextField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(
-              labelText: 'Google email',
-              hintText: 'example@gmail.com',
-              prefixIcon: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: const Icon(Icons.email_outlined),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
-                borderSide: const BorderSide(color: Colors.transparent),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
-                borderSide: const BorderSide(color: Colors.transparent),
+          // Email TextField & Contact List Button
+          SizedBox(
+            width: 400,
+            child: IntrinsicHeight(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: 'Google email',
+                        hintText: 'example@gmail.com',
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: const Icon(Icons.email_outlined),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(4),
+                          borderSide: const BorderSide(
+                            color: Colors.transparent,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(4),
+                          borderSide: const BorderSide(
+                            color: Colors.transparent,
+                          ),
+                        ),
+                      ),
+                      textInputAction: TextInputAction.go,
+                      onSubmitted: (_) => _startChatByEmail(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  CustomFilledButton.icon(
+                    icon: Icon(
+                      Icons.perm_contact_calendar_rounded,
+                      size: 24,
+                      color: Theme.of(context).colorScheme.onSecondary,
+                    ),
+                    onPressed: () => _showContactsList(context),
+                    minWidth: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    backgroundColor: Theme.of(context).colorScheme.secondary,
+                  ),
+                ],
               ),
             ),
-            textInputAction: TextInputAction.go,
-            onSubmitted: (_) => _startChatByEmail(),
           ),
           const SizedBox(height: 16),
 

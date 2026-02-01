@@ -72,7 +72,7 @@ class CustomFilledButton extends StatelessWidget {
           ),
           padding: padding ?? const EdgeInsets.symmetric(
             horizontal: 22,
-            vertical: 18,
+            vertical: 20,
           ),
           backgroundColor: defaultBackgroundColor,
         ),
@@ -94,7 +94,7 @@ class CustomFilledButton extends StatelessWidget {
           ),
           padding: padding ?? const EdgeInsets.symmetric(
             horizontal: 22,
-            vertical: 18,
+            vertical: 20,
           ),
           backgroundColor: defaultBackgroundColor,
         ),
