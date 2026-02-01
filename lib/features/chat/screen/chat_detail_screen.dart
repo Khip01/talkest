@@ -18,6 +18,7 @@ import 'package:talkest/features/chat/data/chat_repository.dart';
 import 'package:talkest/features/chat/data/message_repository.dart';
 import 'package:talkest/features/chat/models/message.dart';
 import 'package:talkest/features/chat/widget/message_bubble.dart';
+import 'package:talkest/shared/utils/embed_context.dart';
 import 'package:talkest/shared/widgets/app_scaffold.dart';
 import 'package:talkest/shared/widgets/custom_filled_button.dart';
 import 'package:talkest/shared/widgets/custom_message_box.dart';
@@ -98,6 +99,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Widget build(BuildContext context) {
     final currentUser = context.read<AuthRepository>().currentUser;
 
+    // Detect embed mode using path parameter (targetUserId from route)
+    final embedContext = EmbedContext.fromUri(
+      GoRouterState.of(context).uri,
+      pathTargetUid: widget.targetUserId,
+    );
+
     if (currentUser == null) {
       return const Scaffold(body: Center(child: Text('Not authenticated')));
     }
@@ -114,7 +121,20 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           );
 
           Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) context.go('/');
+            if (mounted) {
+              // Preserve embed state when redirecting on error
+              if (embedContext.isEmbed) {
+                context.goNamed(
+                  'root',
+                  queryParameters: {
+                    'embed': 1,
+                    'targetUid': '${embedContext.targetUid}',
+                  },
+                );
+              } else {
+                context.goNamed('root');
+              }
+            }
           });
         }
       },

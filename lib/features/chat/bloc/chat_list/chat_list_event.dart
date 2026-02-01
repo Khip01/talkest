@@ -13,3 +13,9 @@ class ChatListUpdated extends ChatListEvent {
 
   const ChatListUpdated(this.chats);
 }
+
+class OpenOrCreateEmbedChat extends ChatListEvent {
+  final String targetUid;
+
+  const OpenOrCreateEmbedChat(this.targetUid);
+}

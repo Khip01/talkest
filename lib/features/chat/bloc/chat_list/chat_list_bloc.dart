@@ -31,6 +31,7 @@ class ChatListBloc extends Bloc<ChatListEvent, ChatListState> {
        super(const ChatListLoading()) {
     on<LoadChatList>(_onLoadChatList);
     on<ChatListUpdated>(_onChatListUpdated);
+    on<OpenOrCreateEmbedChat>(_onOpenOrCreateEmbedChat);
   }
 
   Future<void> _onLoadChatList(
@@ -96,13 +97,72 @@ class ChatListBloc extends Bloc<ChatListEvent, ChatListState> {
           }
 
           return ChatListItem(chat: chat, otherUser: otherUser);
-
         }),
       );
 
       emit(ChatListLoaded(items));
     } catch (e) {
       emit(ChatListError('Failed to resolve user data: $e'));
+    }
+  }
+
+  Future<void> _onOpenOrCreateEmbedChat(
+    OpenOrCreateEmbedChat event,
+    Emitter<ChatListState> emit,
+  ) async {
+    final currentUser = _authRepository.currentUser;
+    if (currentUser == null) {
+      emit(const ChatListError('Not authenticated', shouldRedirect: true));
+      return;
+    }
+
+    emit(const ChatListLoading());
+
+    try {
+      // Prevent self-chat
+      if (event.targetUid == currentUser.uid) {
+        emit(
+          const ChatListError(
+            'Cannot chat with yourself',
+            shouldRedirect: true,
+          ),
+        );
+        return;
+      }
+
+      // Verify target user exists
+      final targetUser = await _userRepository.getUserData(event.targetUid);
+      if (targetUser == null) {
+        emit(const ChatListError('User not found', shouldRedirect: true));
+        return;
+      }
+
+      // Get or create direct chat
+      await _chatRepository.getOrCreateDirectChat(
+        currentUser.uid,
+        event.targetUid,
+      );
+
+      // Load chats and filter to show only the target chat
+      await _chatSubscription?.cancel();
+      _chatSubscription = _chatRepository
+          .getChatsForUser(currentUser.uid)
+          .listen(
+            (chats) {
+              // Filter to only the target chat
+              final filteredChats = chats.where((chat) {
+                final otherUserId = chat.getOtherParticipantId(currentUser.uid);
+                return otherUserId == event.targetUid;
+              }).toList();
+
+              add(ChatListUpdated(filteredChats));
+            },
+            onError: (error) {
+              add(ChatListUpdated([]));
+            },
+          );
+    } catch (e) {
+      emit(ChatListError('Error: $e', shouldRedirect: true));
     }
   }
 

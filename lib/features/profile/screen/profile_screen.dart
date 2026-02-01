@@ -382,6 +382,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (confirmed == true && context.mounted) {
       await context.read<AuthRepository>().disconnect();
+      if (context.mounted) context.goNamed('login');
     }
   }
 }

@@ -22,19 +22,36 @@ GoRouter createRouter(AuthRepository authRepository) {
       final user = authRepository.currentUser;
       final loggingIn = state.matchedLocation == '/login';
 
+      final isEmbed = state.uri.queryParameters['embed'] == '1';
+
       debugPrint('GoRouter redirect:');
       debugPrint('Current user: ${user?.email ?? 'null'}');
       debugPrint('Current location: ${state.matchedLocation}');
+      debugPrint('Full URI: ${state.uri}');
       debugPrint('Logging in page: $loggingIn');
 
-      // Redirect to login if not authenticated
-      if (user == null && !loggingIn) {
-        debugPrint('   > Redirecting to /login (not authenticated)');
-        return '/login';
+      // Embed user not loged in, auto redirect for embed user
+      if (user == null && isEmbed && state.matchedLocation != '/') {
+        debugPrint('   > Embed user not logged in, redirecting to Root for landing page');
+        return '/?${state.uri.query}';
       }
 
-      // Redirect to home if already authenticated and trying to access auth pages
+      // Redirect to login if not authenticated (preserve original URL)
+      if (user == null && !loggingIn && !isEmbed) {
+        final from = state.uri.toString();
+        debugPrint('   > Redirecting to /login (not authenticated)');
+        debugPrint('   > Preserving redirect URL: $from');
+        return '/login?redirect=${Uri.encodeComponent(from)}';
+      }
+
+      // Redirect to original URL after login (or default to /)
       if (user != null && loggingIn) {
+        final redirect = state.uri.queryParameters['redirect'];
+        if (redirect != null) {
+          final decodedRedirect = Uri.decodeComponent(redirect);
+          debugPrint('   > Redirecting to saved URL: $decodedRedirect');
+          return decodedRedirect;
+        }
         debugPrint('   > Redirecting to / (already authenticated)');
         return '/';
       }
@@ -92,7 +109,7 @@ GoRouter createRouter(AuthRepository authRepository) {
           ),
           GoRoute(
             name: 'profile',
-            path: '/profile',
+            path: 'profile',
             pageBuilder: (context, state) => CustomTransition.none(
               state: state,
               child: const ProfileScreen(),

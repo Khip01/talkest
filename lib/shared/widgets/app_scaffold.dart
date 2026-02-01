@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:talkest/app/provider/theme_provider.dart';
 import 'package:talkest/app/theme/theme.dart';
+import 'package:talkest/shared/utils/embed_context.dart';
 import 'package:talkest/shared/utils/utils.dart';
 import 'package:talkest/shared/widgets/custom_text_button.dart';
 
@@ -79,7 +80,27 @@ class _AppScaffoldState extends State<AppScaffold> {
                         padding: EdgeInsets.zero,
                         minWidth: 0,
                         icon: const Icon(Icons.account_circle),
-                        onPressed: () => context.goNamed('profile'),
+                        onPressed: () {
+                          // context.goNamed('profile');
+                          final state = GoRouterState.of(context);
+
+                          final embed = EmbedContext.fromUri(
+                            state.uri,
+                            pathTargetUid: state.pathParameters['id'],
+                          );
+
+                          if (embed.isValidEmbed) {
+                            context.goNamed(
+                              'profile',
+                              queryParameters: {
+                                'embed': '1',
+                                'targetUid': embed.targetUid!,
+                              },
+                            );
+                          } else {
+                            context.goNamed('profile');
+                          }
+                        },
                         tooltip: 'Profile',
                       ),
                     _ThemeSwitcher(

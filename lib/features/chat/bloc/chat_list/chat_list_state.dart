@@ -26,11 +26,21 @@ class ChatListLoaded extends ChatListState {
 
 class ChatListError extends ChatListState {
   final String message;
+  final bool shouldRedirect;
 
-  const ChatListError(this.message);
+  const ChatListError(this.message, {this.shouldRedirect = false});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, shouldRedirect];
+}
+
+class EmbedChatReady extends ChatListState {
+  final String targetUid;
+
+  const EmbedChatReady(this.targetUid);
+
+  @override
+  List<Object?> get props => [targetUid];
 }
 
 /// UI-ready model combining chat with resolved user data
