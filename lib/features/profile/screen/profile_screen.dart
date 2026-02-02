@@ -621,15 +621,19 @@ class _QrCodeBottomSheet extends StatelessWidget {
               const SizedBox(height: 24),
 
               // User info below QR
-              Text(
-                appUser.displayName.isNotEmpty
-                    ? appUser.displayName
-                    : appUser.name,
-                style: AppTextStyles.titleLarge.copyWith(
-                  color: colorScheme.onSurface,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  appUser.displayName.isNotEmpty
+                      ? appUser.displayName
+                      : appUser.name,
+                  style: AppTextStyles.titleLarge.copyWith(
+                    color: colorScheme.onSurface,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 12),
               Text(
                 'Scan to start a chat',
                 style: AppTextStyles.bodySmall.copyWith(
