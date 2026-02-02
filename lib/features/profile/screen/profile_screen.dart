@@ -149,19 +149,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 16),
                     // Display Name (yang tampil ke user lain)
-                    Text(
-                      appUser.displayName.isNotEmpty
-                          ? appUser.displayName
-                          : appUser.name,
-                      style: AppTextStyles.headlineMedium.copyWith(
-                        color: colorScheme.onSurface,
-                      ),
-                      textAlign: TextAlign.center,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          appUser.displayName.isNotEmpty
+                              ? appUser.displayName
+                              : appUser.name,
+                          style: AppTextStyles.headlineMedium.copyWith(
+                            color: colorScheme.onSurface,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8, top: 4),
+                          child: Text(
+                            "(display name)",
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: colorScheme.outline,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     // Name sebagai tag (@username style)
                     Text(
-                      '@${appUser.name.toLowerCase().replaceAll(' ', '')}',
+                      appUser.name,
                       style: AppTextStyles.bodyMedium.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -193,35 +208,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // ============================================================
               // ACTION BUTTONS: QR Code & Edit Display Name
               // ============================================================
-              Row(
-                children: [
-                  Expanded(
-                    child: CustomFilledButton.icon(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  List<Widget> actionButtons = [
+                    CustomFilledButton.icon(
                       icon: Icon(
                         Icons.qr_code_rounded,
                         color: Theme.of(context).colorScheme.onPrimary,
                       ),
                       label: 'My QR Code',
                       minWidth: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
                       onPressed: () => _showQrCodeSheet(context, appUser),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: CustomFilledButton.icon(
+                    CustomFilledButton.icon(
                       icon: Icon(
                         Icons.edit_rounded,
                         color: Theme.of(context).colorScheme.onPrimary,
                       ),
-                      label: 'Edit Name',
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 20,
+                      ),
                       minWidth: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      label: 'Edit Display Name',
                       onPressed: () =>
                           _showEditDisplayNameSheet(context, appUser),
                     ),
-                  ),
-                ],
+                  ];
+
+                  if (constraints.maxWidth <= 400) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      spacing: 12,
+                      children: actionButtons,
+                    );
+                  } else {
+                    return Row(
+                      spacing: 12,
+                      children: actionButtons
+                          .map((widget) => Expanded(child: widget))
+                          .toList(),
+                    );
+                  }
+                },
               ),
 
               const SizedBox(height: 32),
@@ -294,13 +324,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 22,
+                      vertical: 20,
+                    ),
                     side: BorderSide(
                       color: colorScheme.error.withValues(alpha: 0.4),
                     ),
                     overlayColor: colorScheme.error,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                 ),
@@ -394,10 +427,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (embed.isValidEmbed) {
         context.goNamed(
           'root',
-          queryParameters: {
-            'embed': '1',
-            'targetUid': embed.targetUid!,
-          },
+          queryParameters: {'embed': '1', 'targetUid': embed.targetUid!},
         );
       } else {
         context.goNamed('login');

@@ -326,6 +326,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   style: AppTextStyles.titleMedium,
                 ),
               ),
+              SizedBox(width: AppScaffold.appBarDefaultConfig.leadingWidth),
             ],
           ),
         ),
@@ -614,6 +615,7 @@ class _MessageInputState extends State<_MessageInput> {
                   minLines: 1,
                   maxLines: 8,
                   decoration: InputDecoration(
+                    contentPadding: const EdgeInsets.all(12),
                     // labelText: 'Google email',
                     hintText: 'Type a message...',
                     // prefixIcon: Padding(
@@ -660,7 +662,7 @@ class _MessageInputState extends State<_MessageInput> {
                             color: Theme.of(context).colorScheme.onPrimary,
                           ),
                           minWidth: 0,
-                          padding: const EdgeInsets.all(15),
+                          padding: const EdgeInsets.all(12),
                           onPressed: () => _sendMessage(context),
                         );
                 },
@@ -758,7 +760,7 @@ class _OtherUserProfileBottomSheetState
                       const SizedBox(height: 4),
                       // Username tag
                       Text(
-                        '@${widget.appUser.name.toLowerCase().replaceAll(' ', '')}',
+                        widget.appUser.name,
                         style: AppTextStyles.bodyMedium.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),

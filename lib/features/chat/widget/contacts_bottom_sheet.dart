@@ -49,6 +49,7 @@ class _ContactsBottomSheetState extends State<ContactsBottomSheet> {
       }
     }
   }
+
   // End Hardcoded Suggested User
 
   @override
@@ -166,36 +167,129 @@ class _ContactsBottomSheetState extends State<ContactsBottomSheet> {
                   }
 
                   if (state is ContactListEmpty) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.people_outline,
-                              size: 64,
-                              color: colorScheme.onSurfaceVariant,
+                    // return Center(
+                    //   child: Padding(
+                    //     padding: const EdgeInsets.all(32),
+                    //     child: Column(
+                    //       mainAxisAlignment: MainAxisAlignment.center,
+                    //       children: [
+                    //         Icon(
+                    //           Icons.people_outline,
+                    //           size: 64,
+                    //           color: colorScheme.onSurfaceVariant,
+                    //         ),
+                    //         const SizedBox(height: 16),
+                    //         Text(
+                    //           "No contacts yet",
+                    //           style: Theme.of(context).textTheme.titleLarge
+                    //               ?.copyWith(
+                    //                 color: colorScheme.onSurfaceVariant,
+                    //               ),
+                    //         ),
+                    //         const SizedBox(height: 8),
+                    //         Text(
+                    //           "Start a chat to add contacts",
+                    //           style: Theme.of(context).textTheme.bodyMedium
+                    //               ?.copyWith(
+                    //                 color: colorScheme.onSurfaceVariant,
+                    //               ),
+                    //           textAlign: TextAlign.center,
+                    //         ),
+                    //       ],
+                    //     ),
+                    //   ),
+                    // );
+                    return SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Suggested Users Section
+                          Text(
+                            "Suggested Users",
+                            style: AppTextStyles.labelLarge.copyWith(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.bold,
                             ),
-                            const SizedBox(height: 16),
-                            Text(
-                              "No contacts yet",
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Divider(),
+                          const SizedBox(height: 8),
+
+                          // Fetch suggested user from Firestore
+                          if (_loadingSuggestedUser)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                          else if (_suggestedUser != null)
+                            ContactTile(contact: _suggestedUser!)
+                          else
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 16.0),
+                              child: Text(
+                                'No suggested users',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                              ),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              "Start a chat to add contacts",
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                              textAlign: TextAlign.center,
+
+                          const SizedBox(height: 24),
+
+                          // Your Contacts Section
+                          Text(
+                            "Your Contacts",
+                            style: AppTextStyles.labelLarge.copyWith(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.bold,
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Divider(),
+                          const SizedBox(height: 8),
+
+                          // Alphabetical contact list
+                          // _buildAlphabeticalContactList(state),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 64),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Icon(
+                                  Icons.people_outline,
+                                  size: 64,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  "No contacts yet",
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "Start a chat to add contacts",
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   }
@@ -456,7 +550,7 @@ class ContactTile extends StatelessWidget {
 
                   // Name with @ prefix
                   Text(
-                    '@${contact.name}',
+                    '${contact.name}',
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),

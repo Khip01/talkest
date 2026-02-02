@@ -8,11 +8,13 @@ import 'package:talkest/features/auth/data/auth_repository.dart';
 import 'package:talkest/features/auth/data/datasource/datasources.dart';
 import 'package:talkest/features/chat/bloc/chat_list/chat_list_bloc.dart';
 import 'package:talkest/features/chat/data/chat_repository.dart';
+import 'package:talkest/features/chat/screen/embeded_landing_screen.dart';
 import 'package:talkest/features/chat/widget/chat_tile.dart';
 import 'package:talkest/features/chat/widget/start_chat_bottom_sheet.dart';
 import 'package:talkest/shared/utils/embed_context.dart';
 import 'package:talkest/shared/widgets/app_scaffold.dart';
 import 'package:talkest/shared/widgets/custom_filled_button.dart';
+import 'package:talkest/shared/widgets/custom_text_button.dart';
 
 class ChatListScreen extends StatelessWidget {
   const ChatListScreen({super.key});
@@ -24,16 +26,7 @@ class ChatListScreen extends StatelessWidget {
 
     // Embed mode + not authenticated: show blur overlay with CTA
     if (embedContext.isEmbed && currentUser == null) {
-      return Scaffold(
-        body: Stack(
-          children: [
-            _FakeChatBackground(),
-            _EmbedLoginOverlay(
-              currentUri: GoRouterState.of(context).uri.toString(),
-            ),
-          ],
-        ),
-      );
+      return Scaffold(body: EmbededLandingScreen());
     }
 
     return BlocProvider(
@@ -107,22 +100,22 @@ class _ChatListView extends StatelessWidget {
           });
         }
 
-        // Show error and redirect on embed error
-        if (state is ChatListError &&
-            state.shouldRedirect &&
-            embedContext.isEmbed) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
-          Future.delayed(const Duration(seconds: 2), () {
-            if (context.mounted) {
-              context.goNamed('root');
-            }
-          });
-        }
+        // // Show error and redirect on embed error
+        // if (state is ChatListError &&
+        //     state.shouldRedirect &&
+        //     embedContext.isEmbed) {
+        //   ScaffoldMessenger.of(context).showSnackBar(
+        //     SnackBar(
+        //       content: Text(state.message),
+        //       backgroundColor: Theme.of(context).colorScheme.error,
+        //     ),
+        //   );
+        //   Future.delayed(const Duration(seconds: 2), () {
+        //     if (context.mounted) {
+        //       context.goNamed('root');
+        //     }
+        //   });
+        // }
       },
       child: AppScaffold(
         // Hide FAB in embed mode
@@ -191,33 +184,66 @@ class _ChatListView extends StatelessWidget {
                 if (embedContext.isEmbed && state.shouldRedirect) {
                   return _EmbedErrorScreen(
                     title: "Chat user not found",
-                    subtitle: state.message,
+                    subtitle:
+                        "Embed mode canceled. \nRedirecting you to the main page...",
                     showRedirecting: true,
                   );
                 }
+
+                final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Theme.of(context).colorScheme.error,
+                      // Icon(
+                      //   Icons.error_outline,
+                      //   size: 64,
+                      //   color: Theme.of(context).colorScheme.error,
+                      // ),
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: colorScheme.errorContainer,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.error_outline_rounded,
+                          size: 48,
+                          color: colorScheme.onErrorContainer,
+                        ),
                       ),
-                      const SizedBox(height: 16),
+                      // const SizedBox(height: 16),
+                      // Text(
+                      //   state.message,
+                      //   textAlign: TextAlign.center,
+                      //   style: Theme.of(context).textTheme.bodyLarge,
+                      // ),
+                      const SizedBox(height: 24),
+                      Text(
+                        "Chat user not found",
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: colorScheme.error,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
                       Text(
                         state.message,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       if (!embedContext.isEmbed) ...[
                         const SizedBox(height: 16),
-                        TextButton(
+                        CustomTextButton.text(
                           onPressed: () => context.read<ChatListBloc>().add(
                             const LoadChatList(),
                           ),
-                          child: const Text("Retry"),
+                          textColor: colorScheme.primary,
+                          text: "Refresh",
                         ),
                       ],
                     ],
@@ -301,229 +327,6 @@ class _ChatListView extends StatelessWidget {
   }
 }
 
-// Fake chat background for embed mode when not authenticated
-class _FakeChatBackground extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Column(
-      children: [
-        Container(
-          padding: EdgeInsets.only(
-            top: MediaQuery.of(context).padding.top + 8,
-            left: 16,
-            right: 16,
-            bottom: 8,
-          ),
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            border: Border(
-              bottom: BorderSide(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-              ),
-            ),
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: colorScheme.surfaceContainerHighest,
-                child: Icon(Icons.person, color: colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 120,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    width: 80,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.6,
-                      ),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _FakeMessageBubble(isMe: false, width: 200),
-              const SizedBox(height: 8),
-              _FakeMessageBubble(isMe: true, width: 150),
-              const SizedBox(height: 8),
-              _FakeMessageBubble(isMe: false, width: 180),
-              const SizedBox(height: 8),
-              _FakeMessageBubble(isMe: true, width: 220),
-            ],
-          ),
-        ),
-        Container(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 8,
-            bottom: MediaQuery.of(context).padding.bottom + 8,
-          ),
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            border: Border(
-              top: BorderSide(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-              ),
-            ),
-          ),
-          child: Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(24),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _FakeMessageBubble extends StatelessWidget {
-  final bool isMe;
-  final double width;
-
-  const _FakeMessageBubble({required this.isMe, required this.width});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        width: width,
-        height: 40,
-        decoration: BoxDecoration(
-          color: isMe
-              ? colorScheme.primaryContainer.withValues(alpha: 0.5)
-              : colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-    );
-  }
-}
-
-// Embed login overlay with blur and CTA
-class _EmbedLoginOverlay extends StatelessWidget {
-  final String currentUri;
-
-  const _EmbedLoginOverlay({required this.currentUri});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: ClipRect(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                color: colorScheme.surface.withValues(alpha: 0.6),
-              ),
-            ),
-          ),
-        ),
-        Center(
-          child: Container(
-            margin: const EdgeInsets.all(24),
-            padding: const EdgeInsets.all(32),
-            constraints: const BoxConstraints(maxWidth: 400),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: colorScheme.shadow.withValues(alpha: 0.15),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.chat_bubble_rounded,
-                    size: 40,
-                    color: colorScheme.onPrimaryContainer,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Sign in to continue',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Please sign in with Google to start chatting.',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                FilledButton.icon(
-                  onPressed: () {
-                    final redirectUrl = Uri.encodeComponent(currentUri);
-                    context.goNamed(
-                      'login',
-                      queryParameters: {'redirect': redirectUrl},
-                    );
-                  },
-                  icon: Icon(Icons.login_rounded, size: 20),
-                  label: const Text('Sign in with Google'),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 16,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 // Error screen for embed mode with auto-redirect
 class _EmbedErrorScreen extends StatefulWidget {
   final String title;
@@ -545,7 +348,7 @@ class _EmbedErrorScreenState extends State<_EmbedErrorScreen> {
   void initState() {
     super.initState();
     if (widget.showRedirecting) {
-      Future.delayed(const Duration(seconds: 2), () {
+      Future.delayed(const Duration(seconds: 8), () {
         if (mounted) {
           context.goNamed('root');
         }

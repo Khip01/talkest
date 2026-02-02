@@ -90,7 +90,7 @@ class ChatListBloc extends Bloc<ChatListEvent, ChatListState> {
           if (otherUser == null) {
             otherUser = await _userRepository.getUserData(otherUserId);
             if (otherUser == null) {
-              throw Exception('User not found: $otherUserId');
+              throw Exception('User not found2: $otherUserId');
             }
             // Save to cache
             _userCache[otherUserId] = otherUser;
@@ -133,7 +133,12 @@ class ChatListBloc extends Bloc<ChatListEvent, ChatListState> {
       // Verify target user exists
       final targetUser = await _userRepository.getUserData(event.targetUid);
       if (targetUser == null) {
-        emit(const ChatListError('User not found', shouldRedirect: true));
+        emit(
+          const ChatListError(
+            'Embed mode canceled. \nThe user with that targetUid was not found. \nNow you are on the main page.',
+            shouldRedirect: true,
+          ),
+        );
         return;
       }
 
