@@ -9,6 +9,7 @@ import 'package:talkest/features/auth/data/datasource/app_user_remote_data_sourc
 import 'package:talkest/features/auth/models/app_user.dart';
 import 'package:talkest/features/chat/bloc/contact_list/contact_list_bloc.dart';
 import 'package:talkest/shared/widgets/custom_text_button.dart';
+import 'package:talkest/shared/widgets/custom_text_field.dart';
 
 class ContactsBottomSheet extends StatefulWidget {
   const ContactsBottomSheet({super.key});
@@ -97,44 +98,40 @@ class _ContactsBottomSheetState extends State<ContactsBottomSheet> {
             // Search bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(
+              child: CustomTextField(
                 controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search by name or email',
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  suffixIcon: BlocBuilder<ContactListBloc, ContactListState>(
-                    builder: (context, state) {
-                      if (state is ContactListLoaded && state.isSearching) {
-                        return IconButton(
-                          icon: Icon(
-                            Icons.clear,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          onPressed: () {
-                            _searchController.clear();
-                            context.read<ContactListBloc>().add(
-                              const ClearSearch(),
-                            );
-                          },
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                  filled: true,
-                  fillColor: colorScheme.surfaceContainerHighest,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
+                hintText: "Search by name or email",
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: colorScheme.onSurfaceVariant,
                 ),
+                suffixIcon: BlocBuilder<ContactListBloc, ContactListState>(
+                  builder: (context, state) {
+                    if (state is ContactListLoaded && state.isSearching) {
+                      return IconButton(
+                        icon: Icon(
+                          Icons.clear,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          context.read<ContactListBloc>().add(
+                            const ClearSearch(),
+                          );
+                        },
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+                contentPadding: const EdgeInsets.all(12),
+                //   filled: true,
+                //   fillColor: colorScheme.surfaceContainerHighest,
+                //   border: OutlineInputBorder(
+                //     borderRadius: BorderRadius.circular(12),
+                //     borderSide: BorderSide.none,
+                //   ),
+                // ),
                 onChanged: (query) {
                   context.read<ContactListBloc>().add(SearchContacts(query));
                 },
@@ -231,7 +228,9 @@ class _ContactsBottomSheetState extends State<ContactsBottomSheet> {
                             ContactTile(contact: _suggestedUser!)
                           else
                             Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 16.0),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 16.0,
+                              ),
                               child: Text(
                                 'No suggested users',
                                 style: Theme.of(context).textTheme.bodySmall
@@ -550,7 +549,7 @@ class ContactTile extends StatelessWidget {
 
                   // Name with @ prefix
                   Text(
-                    '${contact.name}',
+                    contact.name,
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),

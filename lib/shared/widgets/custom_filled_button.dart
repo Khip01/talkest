@@ -75,6 +75,7 @@ class CustomFilledButton extends StatelessWidget {
             vertical: 20,
           ),
           backgroundColor: defaultBackgroundColor,
+          disabledBackgroundColor: theme.colorScheme.surfaceContainerHighest,
         ),
         icon: icon,
         label: Text(
@@ -97,6 +98,7 @@ class CustomFilledButton extends StatelessWidget {
             vertical: 20,
           ),
           backgroundColor: defaultBackgroundColor,
+          disabledBackgroundColor: theme.colorScheme.surfaceContainerHighest,
         ),
         icon: icon!,
       );

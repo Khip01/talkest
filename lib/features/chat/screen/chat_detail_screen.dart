@@ -20,6 +20,7 @@ import 'package:talkest/shared/widgets/app_scaffold.dart';
 import 'package:talkest/shared/widgets/custom_filled_button.dart';
 import 'package:talkest/shared/widgets/custom_message_box.dart';
 import 'package:talkest/shared/widgets/custom_text_button.dart';
+import 'package:talkest/shared/widgets/custom_text_field.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String targetUserId;
@@ -608,29 +609,14 @@ class _MessageInputState extends State<_MessageInput> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
-                child: TextField(
+                child: CustomTextField(
                   focusNode: widget.focusNode,
                   controller: _messageController,
                   keyboardType: TextInputType.multiline,
                   minLines: 1,
                   maxLines: 8,
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.all(12),
-                    // labelText: 'Google email',
-                    hintText: 'Type a message...',
-                    // prefixIcon: Padding(
-                    //   padding: const EdgeInsets.symmetric(horizontal: 4),
-                    //   child: const Icon(Icons.email_outlined),
-                    // ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: const BorderSide(color: Colors.transparent),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: const BorderSide(color: Colors.transparent),
-                    ),
-                  ),
+                  contentPadding: const EdgeInsets.all(12),
+                  hintText: "Type a message...",
                   textInputAction: TextInputAction.newline,
                 ),
               ),
@@ -647,13 +633,17 @@ class _MessageInputState extends State<_MessageInput> {
                   final isSending = state is ChatDetailReady && state.isSending;
 
                   return isSending
-                      ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Theme.of(context).colorScheme.onPrimary,
+                      ? CustomFilledButton.icon(
+                          icon: SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
                           ),
+                          minWidth: 0,
+                          padding: EdgeInsets.all(12),
                         )
                       : CustomFilledButton.icon(
                           icon: Icon(

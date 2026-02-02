@@ -148,32 +148,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       displayName: appUser.displayName,
                     ),
                     const SizedBox(height: 16),
-                    // Display Name (yang tampil ke user lain)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          appUser.displayName.isNotEmpty
-                              ? appUser.displayName
-                              : appUser.name,
-                          style: AppTextStyles.headlineMedium.copyWith(
-                            color: colorScheme.onSurface,
+                    Text.rich(
+                      textAlign: TextAlign.center,
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: appUser.displayName,
+                            style: AppTextStyles.headlineMedium,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8, top: 4),
-                          child: Text(
-                            "(display name)",
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: colorScheme.outline,
+                          TextSpan(text: '  '),
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.top,
+                            // child: Transform.translate(
+                            //   offset: Offset(0, -4), // Fine-tune position
+                            //   child: Text(
+                            //     '(display name)',
+                            //     style: AppTextStyles.bodyMedium.copyWith(
+                            //       color: colorScheme.outline,
+                            //       height: 0.8,
+                            //     ),
+                            //   ),
+                            // ),
+                            child: Text(
+                              '(display name)',
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: colorScheme.outline,
+                                height: 0.4,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 12),
                     // Name sebagai tag (@username style)
                     Text(
                       appUser.name,

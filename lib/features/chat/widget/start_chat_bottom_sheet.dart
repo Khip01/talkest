@@ -12,6 +12,7 @@ import 'package:talkest/features/chat/widget/contacts_bottom_sheet.dart';
 import 'package:talkest/shared/widgets/custom_text_button.dart';
 import 'package:talkest/shared/widgets/custom_filled_button.dart';
 import 'package:talkest/shared/widgets/custom_message_box.dart';
+import 'package:talkest/shared/widgets/custom_text_field.dart';
 
 class StartChatBottomSheet extends StatefulWidget {
   const StartChatBottomSheet({super.key});
@@ -167,28 +168,15 @@ class _StartChatBottomSheetState extends State<StartChatBottomSheet> {
                 children: [
                   Expanded(
                     flex: 1,
-                    child: TextField(
+                    child: CustomTextField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        labelText: 'Google email',
-                        hintText: 'example@gmail.com',
-                        prefixIcon: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: const Icon(Icons.email_outlined),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4),
-                          borderSide: const BorderSide(
-                            color: Colors.transparent,
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4),
-                          borderSide: const BorderSide(
-                            color: Colors.transparent,
-                          ),
-                        ),
+                      contentPadding: EdgeInsets.all(12),
+                      labelText: "Google email",
+                      hintText: "example@gmail.com",
+                      prefixIcon: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: const Icon(Icons.email_outlined),
                       ),
                       textInputAction: TextInputAction.go,
                       onSubmitted: (_) => _startChatByEmail(),
@@ -203,7 +191,7 @@ class _StartChatBottomSheetState extends State<StartChatBottomSheet> {
                     ),
                     onPressed: () => _showContactsList(context),
                     minWidth: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.all(12),
                     backgroundColor: Theme.of(context).colorScheme.secondary,
                   ),
                 ],

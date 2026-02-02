@@ -4,6 +4,7 @@ import 'package:talkest/app/theme/text_styles.dart';
 /// Reusable TextField widget with consistent styling across the app
 class CustomTextField extends StatelessWidget {
   final TextEditingController? controller;
+  final EdgeInsetsGeometry? contentPadding;
   final String? hintText;
   final String? labelText;
   final Widget? prefixIcon;
@@ -24,6 +25,7 @@ class CustomTextField extends StatelessWidget {
   const CustomTextField({
     super.key,
     this.controller,
+    this.contentPadding,
     this.hintText,
     this.labelText,
     this.prefixIcon,
@@ -62,6 +64,7 @@ class CustomTextField extends StatelessWidget {
       enabled: enabled,
       style: AppTextStyles.bodyLarge.copyWith(color: colorScheme.onSurface),
       decoration: InputDecoration(
+        contentPadding: contentPadding,
         hintText: hintText,
         labelText: labelText,
         hintStyle: AppTextStyles.bodyLarge.copyWith(
