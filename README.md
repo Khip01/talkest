@@ -95,8 +95,7 @@ Just embed Talkest on your website, and anyone with a Google account can start a
 
 ---
 
-<details>
-<summary><h2>🔧 Development Setup</h2></summary>
+## 🔧 Development Setup
 
 ### Prerequisites
 
@@ -256,8 +255,6 @@ In embed mode, the app will:
 - Show a landing page with a sign-in prompt for unauthenticated visitors
 - Automatically open a direct chat with the target user after sign-in
 - Hide navigation elements like the FAB and profile access for a clean widget experience
-
-</details>
 
 ## 📚 Resources
 
