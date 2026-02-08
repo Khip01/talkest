@@ -56,31 +56,28 @@ Just embed Talkest on your website, and anyone with a Google account can start a
 
 ### Mobile App
 
-<p align="center">
-  <img src="YOUR_IMAGE_URL_HERE" alt="Login Screen" width="280">&nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="YOUR_IMAGE_URL_HERE" alt="Chat List" width="280">&nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="YOUR_IMAGE_URL_HERE" alt="Chat Detail" width="280">
-</p>
-
-<p align="center">
-  <em>Login</em>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <em>Chat List</em>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <em>Messaging</em>
-</p>
+<table>
+  <tr>
+    <td width="33%" align="center"><b>Login</b></td>
+    <td width="33%" align="center"><b>Chat List</b></td>
+    <td width="33%" align="center"><b>Messaging</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://i.ibb.co.com/9m2M5kmQ/login-screen.jpg" alt="Login Screen"></td>
+    <td align="center"><img src="https://i.ibb.co.com/6crStjh2/chat-list.jpg" alt="Chat List"></td>
+    <td align="center"><img src="https://i.ibb.co.com/0RHtj9h9/chat-messages.jpg" alt="Chat Detail"></td>
+  </tr>
+</table>
 
 ### Embedded Mode (on website)
 
-<p align="center">
-  <img src="YOUR_IMAGE_URL_HERE" alt="Embed Landing Page" width="600">
-</p>
-<p align="center"><em>Embed mode — Landing page on portfolio website</em></p>
+| Embed mode — Landing page on portfolio website |
+|:-----------------------------------------------:|
+| <img src="https://i.ibb.co.com/DHTnVznT/embed-landing-screen.png" alt="Embed Landing Page" width="600"> |
 
-<br>
-
-<p align="center">
-  <img src="YOUR_IMAGE_URL_HERE" alt="Embed Chat View" width="600">
-</p>
-<p align="center"><em>Embed mode — Chat view on portfolio website</em></p>
+| Embed mode — Chat view on portfolio website |
+|:--------------------------------------------:|
+| <img src="https://i.ibb.co.com/hRBSzRnH/embed-chat-view.png" alt="Embed Chat View" width="600"> |
 
 ## 🛠 Tech Stack
 
