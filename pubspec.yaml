@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.3
 
 environment:
   sdk: ^3.9.2
@@ -60,6 +60,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.7
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -75,6 +77,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/icons/
+    - assets/app/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -101,3 +104,52 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# ============================================================
+# flutter_launcher_icons configuration
+# Docs: https://pub.dev/packages/flutter_launcher_icons
+# ============================================================
+flutter_launcher_icons:
+  # --- Android ---
+  android: true
+  image_path: "assets/app/icons/app_icon_light.png"
+  min_sdk_android: 21
+  adaptive_icon_foreground: "assets/app/icons/android/foreground.png"
+  adaptive_icon_background: "assets/app/icons/android/background.png"
+
+  # --- iOS ---
+  ios: true
+  image_path_ios: "assets/app/icons/app_icon_light.png"
+  remove_alpha_ios: true
+
+  # --- Web ---
+  web:
+    generate: true
+    image_path: "assets/app/icons/app_icon_light.png"
+    background_color: "#FFFFFF"
+    theme_color: "#FFFFFF"
+
+# ============================================================
+# flutter_native_splash configuration
+# Docs: https://pub.dev/packages/flutter_native_splash
+# ============================================================
+flutter_native_splash:
+  # --- Light mode ---
+  color: "#FFFFFF"
+  image: "assets/app/splash/splash_light.png"
+
+  # --- Dark mode ---
+  color_dark: "#141414"
+  image_dark: "assets/app/splash/splash_dark.png"
+
+  # --- Android 12+ splash (uses larger 960x960 images) ---
+  android_12:
+    color: "#FFFFFF"
+    image: "assets/app/splash/android12/splash_light.png"
+    color_dark: "#141414"
+    image_dark: "assets/app/splash/android12/splash_dark.png"
+
+  # --- Platform toggles ---
+  android: true
+  ios: true
+  web: false
