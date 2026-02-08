@@ -29,7 +29,7 @@ Just embed Talkest on your website, and anyone with a Google account can start a
 
 | Platform | Status | Link |
 |----------|--------|------|
-| **Android** | ✅ Available | — |
+| **Android** | ✅ Available | [Github release](https://github.com/Khip01/talkest/releases) |
 | **Web** | ✅ Available | [khip01.github.io/talkest](https://khip01.github.io/talkest/) |
 | **Embedded mode** | ✅ Available | Used on [my portfolio](https://khip01.github.io/me/) |
 | **iOS** | ❌ Not yet | _No Mac device available for development_ |
