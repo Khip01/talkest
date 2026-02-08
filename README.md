@@ -209,18 +209,29 @@ firebase deploy --only firestore:indexes --project YOUR_PROJECT_ID
 
 **Web (Development):**
 ```bash
-flutter run -d chrome --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_CLIENT_ID.apps.googleusercontent.com
+flutter run -d <web-device> --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_CLIENT_ID.apps.googleusercontent.com
 ```
 
 **Mobile (Android/iOS):**
 ```bash
-flutter run
+flutter run -d <device-id>
 ```
 
-**Building for Production:**
+### Building for Production:
+
+**Web (Release)**
 ```bash
-flutter build web --wasm --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_CLIENT_ID.apps.googleusercontent.com
+flutter build web --elease --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_CLIENT_ID.apps.googleusercontent.com
 ```
+> [!IMPORTANT]
+> Web builds require the Google Web Client ID for authentication.
+
+**Mobile (Release)**
+```bash
+flutter build --release
+```
+> Mobile builds do not require additional parameters and can be built normally in release mode.
+
 
 ### Embed Mode
 
