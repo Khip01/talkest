@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:talkest/app/theme/colors.dart';
 import 'package:talkest/app/theme/text_styles.dart';
 import 'package:talkest/features/auth/data/auth_repository.dart';
 import 'package:talkest/features/auth/models/app_user.dart';
@@ -257,81 +259,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   ) {
     return AppScaffold(
       isUsingSafeArea: false,
-      customAppBar: AppBar(
-        backgroundColor: Colors.transparent,
-        shadowColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        flexibleSpace: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-            child: Container(
-              color: Theme.of(
-                context,
-              ).colorScheme.surface.withValues(alpha: 0.4),
-              child: InkWell(
-                onLongPress: () {},
-                onTap: () => _showOtherUserProfile(context, state.otherUser),
-              ),
-            ),
-          ),
-        ),
-        titleSpacing: AppScaffold.appBarDefaultConfig.titleSpacing,
-        leadingWidth: AppScaffold.appBarDefaultConfig.leadingWidth,
-        leading: AppScaffold.appBarDefaultConfig.leading(context),
-        title: IgnorePointer(
-          ignoring: true,
-          child: Row(
-            children: [
-              state.otherUser.photoUrl.isNotEmpty
-                  ? ClipOval(
-                      child: CachedNetworkImage(
-                        imageUrl: state.otherUser.photoUrl,
-                        width: 36,
-                        height: 36,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => const SizedBox(
-                          width: 36,
-                          height: 36,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        errorWidget: (context, url, error) => CircleAvatar(
-                          radius: 18,
-                          child: Text(
-                            state.otherUser.displayName.isNotEmpty
-                                ? state.otherUser.displayName[0].toUpperCase()
-                                : '?',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ),
-                    )
-                  : SizedBox(
-                      height: 36,
-                      width: 36,
-                      child: CircleAvatar(
-                        radius: 18,
-                        child: Text(
-                          state.otherUser.displayName.isNotEmpty
-                              ? state.otherUser.displayName[0].toUpperCase()
-                              : '?',
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  state.otherUser.displayName,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.titleMedium,
-                ),
-              ),
-              SizedBox(width: AppScaffold.appBarDefaultConfig.leadingWidth),
-            ],
-          ),
-        ),
-      ),
+      customAppBar: state.isSelectionMode
+          ? _buildSelectionAppBar(context, state, currentUser)
+          : _buildNormalAppBar(context, state),
       body: (context, constraints) {
         return Column(
           children: [
@@ -342,6 +272,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 messages: state.messages,
                 stickyDateController: _stickyDateController!,
                 scrollController: _scrollController,
+                selectedMessageIds: state.selectedMessageIds,
+                highlightedMessageId: state.editingMessage?.id,
+                otherUser: state.otherUser,
               ),
             ),
             _MessageInput(
@@ -349,10 +282,247 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               otherUser: state.otherUser,
               scrollController: _scrollController,
               focusNode: _messageInputFocusNode,
+              editingMessage: state.editingMessage,
+              replyingToMessage: state.replyingToMessage,
+              currentUserId: currentUser.uid,
             ),
           ],
         );
       },
+    );
+  }
+
+  // normal app bar (chat partner info)
+  AppBar _buildNormalAppBar(BuildContext context, ChatDetailReady state) {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      flexibleSpace: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
+            child: InkWell(
+              onLongPress: () {},
+              onTap: () => _showOtherUserProfile(context, state.otherUser),
+            ),
+          ),
+        ),
+      ),
+      titleSpacing: AppScaffold.appBarDefaultConfig.titleSpacing,
+      leadingWidth: AppScaffold.appBarDefaultConfig.leadingWidth,
+      leading: AppScaffold.appBarDefaultConfig.leading(context),
+      title: IgnorePointer(
+        ignoring: true,
+        child: Row(
+          children: [
+            state.otherUser.photoUrl.isNotEmpty
+                ? ClipOval(
+                    child: CachedNetworkImage(
+                      imageUrl: state.otherUser.photoUrl,
+                      width: 36,
+                      height: 36,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => const SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      errorWidget: (context, url, error) => CircleAvatar(
+                        radius: 18,
+                        child: Text(
+                          state.otherUser.displayName.isNotEmpty
+                              ? state.otherUser.displayName[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+                  )
+                : SizedBox(
+                    height: 36,
+                    width: 36,
+                    child: CircleAvatar(
+                      radius: 18,
+                      child: Text(
+                        state.otherUser.displayName.isNotEmpty
+                            ? state.otherUser.displayName[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                state.otherUser.displayName,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.titleMedium,
+              ),
+            ),
+            SizedBox(width: AppScaffold.appBarDefaultConfig.leadingWidth),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // selection mode app bar (close, count, actions)
+  AppBar _buildSelectionAppBar(
+    BuildContext context,
+    ChatDetailReady state,
+    User currentUser,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final selected = state.selectedMessages;
+    final count = selected.length;
+
+    // determine which actions are available
+    final allCurrentUser = selected.every((m) => m.senderId == currentUser.uid);
+    final allNotDeleted = selected.every((m) => !m.isDeleted);
+    final singleSelected = count == 1;
+    final singleMessage = singleSelected ? selected.first : null;
+
+    // can edit: only 1 own message that is not deleted
+    final canEdit =
+        singleSelected &&
+        singleMessage!.senderId == currentUser.uid &&
+        !singleMessage.isDeleted;
+
+    // can delete: all own messages that are not deleted
+    final canDelete = allCurrentUser && allNotDeleted;
+
+    // can reply: only 1 message that is not deleted
+    final canReply = singleSelected && !selected.first.isDeleted;
+
+    // can copy: at least one non-deleted message
+    final canCopy = allNotDeleted;
+
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      flexibleSpace: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
+            child: InkWell(
+              onLongPress: () {},
+              onTap: () => _showOtherUserProfile(context, state.otherUser),
+            ),
+          ),
+        ),
+      ),
+      titleSpacing: AppScaffold.appBarDefaultConfig.titleSpacing,
+      leadingWidth: AppScaffold.appBarDefaultConfig.leadingWidth,
+      leading: AppScaffold.appBarDefaultConfig.leading(
+        context,
+        icon: const Icon(Icons.close),
+        onPressed: () {
+          context.read<ChatDetailBloc>().add(const ClearSelection());
+        },
+      ),
+      title: Text(
+        '$count selected',
+        style: AppTextStyles.titleMedium.copyWith(color: colorScheme.onSurface),
+      ),
+      actions: [
+        if (canReply)
+          IconButton(
+            icon: const Icon(Icons.reply_rounded),
+            tooltip: 'Reply',
+            onPressed: () {
+              context.read<ChatDetailBloc>().add(
+                StartReplyMode(selected.first),
+              );
+            },
+          ),
+        if (canCopy)
+          IconButton(
+            icon: const Icon(Icons.copy_rounded),
+            tooltip: 'Copy',
+            onPressed: () {
+              context.read<ChatDetailBloc>().add(
+                CopyMessagesRequested(selected),
+              );
+              _showSnackBar(context, 'Copied to clipboard');
+            },
+          ),
+        if (canEdit)
+          IconButton(
+            icon: const Icon(Icons.edit_rounded),
+            tooltip: 'Edit',
+            onPressed: () {
+              context.read<ChatDetailBloc>().add(StartEditMode(singleMessage));
+              _messageInputFocusNode.requestFocus();
+            },
+          ),
+        if (canDelete)
+          IconButton(
+            icon: Icon(Icons.delete_outline_rounded, color: colorScheme.error),
+            tooltip: 'Delete',
+            onPressed: () =>
+                _confirmDelete(context, selected.map((m) => m.id).toList()),
+          ),
+      ],
+    );
+  }
+
+  void _showSnackBar(BuildContext context, String text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(text),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, List<String> messageIds) {
+    final colorScheme = Theme.of(context).colorScheme;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          messageIds.length == 1 ? 'Delete message?' : 'Delete messages?',
+          style: AppTextStyles.titleMedium,
+        ),
+        content: Text(
+          messageIds.length == 1
+              ? 'This message will be deleted for everyone.'
+              : 'These ${messageIds.length} messages will be deleted for everyone.',
+          style: AppTextStyles.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.labelLarge.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              context.read<ChatDetailBloc>().add(
+                DeleteMessagesRequested(messageIds),
+              );
+            },
+            child: Text(
+              'Delete',
+              style: AppTextStyles.labelLarge.copyWith(
+                color: colorScheme.error,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -366,14 +536,19 @@ class _MessageList extends StatelessWidget {
   final List<Message> messages;
   final StickyDateController stickyDateController;
   final ScrollController scrollController;
+  final Set<String> selectedMessageIds;
+  final String? highlightedMessageId;
+  final AppUser otherUser;
 
   _MessageList({
-    super.key,
     required this.chatId,
     required this.currentUser,
     required this.messages,
     required this.stickyDateController,
     required this.scrollController,
+    required this.selectedMessageIds,
+    this.highlightedMessageId,
+    required this.otherUser,
   });
 
   /// Group messages by date (on DESC-ordered list, no manual reversal)
@@ -431,6 +606,8 @@ class _MessageList extends StatelessWidget {
     Map<String, GlobalKey> messageKeys,
   ) {
     int itemIndex = 0;
+    final bloc = context.read<ChatDetailBloc>();
+    final isSelectionMode = selectedMessageIds.isNotEmpty;
 
     // Iterate through groups
     for (final group in groups) {
@@ -439,11 +616,28 @@ class _MessageList extends StatelessWidget {
         if (itemIndex == index) {
           final message = group.messages[i];
           final isCurrentUser = message.senderId == currentUserId;
+          final isSelected = selectedMessageIds.contains(message.id);
+          final isHighlighted = highlightedMessageId == message.id;
+
           return KeyedSubtree(
             key: messageKeys[message.id],
             child: MessageBubble(
               message: message,
               isCurrentUser: isCurrentUser,
+              isSelected: isSelected,
+              isHighlighted: isHighlighted,
+              onTap: isSelectionMode
+                  ? () => bloc.add(ToggleMessageSelection(message))
+                  : null,
+              onLongPress: () {
+                bloc.add(ToggleMessageSelection(message));
+              },
+              onSwipeReply: !message.isDeleted
+                  ? () => bloc.add(StartReplyMode(message))
+                  : null,
+              onSecondaryTap: (position) {
+                _showContextMenu(context, position, message, isCurrentUser);
+              },
             ),
           );
         }
@@ -527,23 +721,198 @@ class _MessageList extends StatelessWidget {
       },
     );
   }
+
+  void _showContextMenu(
+    BuildContext context,
+    Offset position,
+    Message message,
+    bool isCurrentUser,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final bloc = context.read<ChatDetailBloc>();
+
+    final items = <PopupMenuEntry<String>>[];
+
+    if (!message.isDeleted) {
+      // reply (always available for non-deleted)
+      items.add(
+        PopupMenuItem(
+          value: 'reply',
+          child: Row(
+            children: [
+              Icon(Icons.reply_rounded, size: 18, color: colorScheme.onSurface),
+              const SizedBox(width: 8),
+              Text('Reply', style: AppTextStyles.bodyMedium),
+            ],
+          ),
+        ),
+      );
+
+      // copy
+      items.add(
+        PopupMenuItem(
+          value: 'copy',
+          child: Row(
+            children: [
+              Icon(Icons.copy_rounded, size: 18, color: colorScheme.onSurface),
+              const SizedBox(width: 8),
+              Text('Copy', style: AppTextStyles.bodyMedium),
+            ],
+          ),
+        ),
+      );
+
+      // edit (only own messages)
+      if (isCurrentUser) {
+        items.add(
+          PopupMenuItem(
+            value: 'edit',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.edit_rounded,
+                  size: 18,
+                  color: colorScheme.onSurface,
+                ),
+                const SizedBox(width: 8),
+                Text('Edit', style: AppTextStyles.bodyMedium),
+              ],
+            ),
+          ),
+        );
+      }
+
+      // delete (only own messages)
+      if (isCurrentUser) {
+        items.add(const PopupMenuDivider());
+        items.add(
+          PopupMenuItem(
+            value: 'delete',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.delete_outline_rounded,
+                  size: 18,
+                  color: colorScheme.error,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Delete',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: colorScheme.error,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    }
+
+    if (items.isEmpty) return;
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx + 1,
+        position.dy + 1,
+      ),
+      items: items,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: colorScheme.surface,
+      elevation: 4,
+    ).then((value) {
+      if (value == null) return;
+      switch (value) {
+        case 'reply':
+          bloc.add(StartReplyMode(message));
+          break;
+        case 'copy':
+          bloc.add(CopyMessagesRequested([message]));
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Copied to clipboard'),
+                duration: Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+          break;
+        case 'edit':
+          bloc.add(StartEditMode(message));
+          break;
+        case 'delete':
+          if (context.mounted) {
+            _confirmDeleteFromContext(context, message.id);
+          }
+          break;
+      }
+    });
+  }
+
+  void _confirmDeleteFromContext(BuildContext context, String messageId) {
+    final colorScheme = Theme.of(context).colorScheme;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Delete message?', style: AppTextStyles.titleMedium),
+        content: Text(
+          'This message will be deleted for everyone.',
+          style: AppTextStyles.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.labelLarge.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              context.read<ChatDetailBloc>().add(
+                DeleteMessagesRequested([messageId]),
+              );
+            },
+            child: Text(
+              'Delete',
+              style: AppTextStyles.labelLarge.copyWith(
+                color: colorScheme.error,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // =============================================================================
-// MESSAGE INPUT
+// MESSAGE INPUT (with reply/edit bar)
 // =============================================================================
 class _MessageInput extends StatefulWidget {
   final String chatId;
   final AppUser otherUser;
   final ScrollController scrollController;
   final FocusNode focusNode;
+  final Message? editingMessage;
+  final Message? replyingToMessage;
+  final String currentUserId;
 
   const _MessageInput({
-    super.key,
     required this.chatId,
     required this.otherUser,
     required this.scrollController,
     required this.focusNode,
+    this.editingMessage,
+    this.replyingToMessage,
+    required this.currentUserId,
   });
 
   @override
@@ -554,16 +923,56 @@ class _MessageInputState extends State<_MessageInput> {
   final TextEditingController _messageController = TextEditingController();
 
   @override
+  void didUpdateWidget(covariant _MessageInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // entering edit mode: populate the textfield
+    if (widget.editingMessage != null &&
+        oldWidget.editingMessage?.id != widget.editingMessage?.id) {
+      _messageController.text = widget.editingMessage!.text;
+      _messageController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _messageController.text.length),
+      );
+      widget.focusNode.requestFocus();
+    }
+
+    // leaving edit mode: clear the textfield
+    if (widget.editingMessage == null && oldWidget.editingMessage != null) {
+      _messageController.clear();
+    }
+
+    // entering reply mode: focus the textfield
+    if (widget.replyingToMessage != null &&
+        oldWidget.replyingToMessage?.id != widget.replyingToMessage?.id) {
+      widget.focusNode.requestFocus();
+    }
+  }
+
+  @override
   void dispose() {
     _messageController.dispose();
     super.dispose();
   }
 
-  Future<void> _sendMessage(BuildContext context) async {
+  Future<void> _sendOrEditMessage(BuildContext context) async {
     final text = _messageController.text;
     if (text.trim().isEmpty) return;
 
-    context.read<ChatDetailBloc>().add(SendMessageRequested(text));
+    final bloc = context.read<ChatDetailBloc>();
+
+    if (widget.editingMessage != null) {
+      // edit mode
+      bloc.add(
+        EditMessageRequested(
+          messageId: widget.editingMessage!.id,
+          newText: text,
+        ),
+      );
+    } else {
+      // send mode (may include reply)
+      bloc.add(SendMessageRequested(text));
+    }
+
     _messageController.clear();
 
     // after sending message request keyboard to still focus
@@ -588,79 +997,268 @@ class _MessageInputState extends State<_MessageInput> {
     return Builder(
       builder: (context) {
         final bottomPadding = MediaQuery.of(context).padding.bottom;
+        final colorScheme = Theme.of(context).colorScheme;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
         return Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
-            // boxShadow: [
-            //   BoxShadow(
-            //     color: Colors.black.withValues(alpha: 0.05),
-            //     blurRadius: 4,
-            //     offset: const Offset(0, -2),
-            //   ),
-            // ],
+            color: colorScheme.surface.withValues(alpha: 0.4),
           ),
-          padding: EdgeInsets.only(
-            left: 8,
-            right: 8,
-            top: 8,
-            bottom: bottomPadding + 8,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: CustomTextField(
-                  focusNode: widget.focusNode,
-                  controller: _messageController,
-                  keyboardType: TextInputType.multiline,
-                  minLines: 1,
-                  maxLines: 8,
-                  contentPadding: const EdgeInsets.all(12),
-                  hintText: "Type a message...",
-                  textInputAction: TextInputAction.newline,
+              // reply bar
+              if (widget.replyingToMessage != null)
+                _ReplyBar(
+                  message: widget.replyingToMessage!,
+                  otherUser: widget.otherUser,
+                  currentUserId: widget.currentUserId,
+                  isDark: isDark,
+                  onClose: () {
+                    context.read<ChatDetailBloc>().add(const CancelReplyMode());
+                  },
                 ),
-              ),
-              const SizedBox(width: 8),
-              BlocBuilder<ChatDetailBloc, ChatDetailState>(
-                buildWhen: (previous, current) {
-                  if (previous is ChatDetailReady &&
-                      current is ChatDetailReady) {
-                    return previous.isSending != current.isSending;
-                  }
-                  return true;
-                },
-                builder: (context, state) {
-                  final isSending = state is ChatDetailReady && state.isSending;
+              // edit bar
+              if (widget.editingMessage != null)
+                _EditBar(
+                  message: widget.editingMessage!,
+                  isDark: isDark,
+                  onClose: () {
+                    context.read<ChatDetailBloc>().add(const CancelEditMode());
+                    _messageController.clear();
+                  },
+                ),
+              // text input row
+              Padding(
+                padding: EdgeInsets.only(
+                  left: 8,
+                  right: 8,
+                  top: 8,
+                  bottom: bottomPadding + 8,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: CustomTextField(
+                        focusNode: widget.focusNode,
+                        controller: _messageController,
+                        keyboardType: TextInputType.multiline,
+                        minLines: 1,
+                        maxLines: 8,
+                        contentPadding: const EdgeInsets.all(12),
+                        hintText: widget.editingMessage != null
+                            ? "Edit message..."
+                            : "Type a message...",
+                        textInputAction: TextInputAction.newline,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    BlocBuilder<ChatDetailBloc, ChatDetailState>(
+                      buildWhen: (previous, current) {
+                        if (previous is ChatDetailReady &&
+                            current is ChatDetailReady) {
+                          return previous.isSending != current.isSending;
+                        }
+                        return true;
+                      },
+                      builder: (context, state) {
+                        final isSending =
+                            state is ChatDetailReady && state.isSending;
 
-                  return isSending
-                      ? CustomFilledButton.icon(
-                          icon: SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                          minWidth: 0,
-                          padding: EdgeInsets.all(12),
-                        )
-                      : CustomFilledButton.icon(
-                          icon: Icon(
-                            Icons.send_rounded,
-                            size: 24,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
-                          minWidth: 0,
-                          padding: const EdgeInsets.all(12),
-                          onPressed: () => _sendMessage(context),
-                        );
-                },
+                        return isSending
+                            ? CustomFilledButton.icon(
+                                icon: SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: colorScheme.primary,
+                                  ),
+                                ),
+                                minWidth: 0,
+                                padding: EdgeInsets.all(12),
+                              )
+                            : CustomFilledButton.icon(
+                                icon: Icon(
+                                  widget.editingMessage != null
+                                      ? Icons.check_rounded
+                                      : Icons.send_rounded,
+                                  size: 24,
+                                  color: colorScheme.onPrimary,
+                                ),
+                                minWidth: 0,
+                                padding: const EdgeInsets.all(12),
+                                onPressed: () => _sendOrEditMessage(context),
+                              );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+// =============================================================================
+// Reply bar (above text input)
+// =============================================================================
+class _ReplyBar extends StatelessWidget {
+  final Message message;
+  final AppUser otherUser;
+  final String currentUserId;
+  final bool isDark;
+  final VoidCallback onClose;
+
+  const _ReplyBar({
+    required this.message,
+    required this.otherUser,
+    required this.currentUserId,
+    required this.isDark,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final accentColor = isDark
+        ? AppColors.replyAccentDark
+        : AppColors.replyAccentLight;
+
+    final senderName = message.senderId == currentUserId
+        ? 'You'
+        : otherUser.displayName;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        border: Border(left: BorderSide(color: accentColor, width: 3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.reply_rounded, size: 18, color: accentColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  senderName,
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: accentColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  message.text.length > 100
+                      ? '${message.text.substring(0, 100)}...'
+                      : message.text,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 4),
+          IconButton(
+            icon: Icon(
+              Icons.close,
+              size: 18,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            onPressed: onClose,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minHeight: 28, minWidth: 28),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Edit bar (above text input)
+// =============================================================================
+class _EditBar extends StatelessWidget {
+  final Message message;
+  final bool isDark;
+  final VoidCallback onClose;
+
+  const _EditBar({
+    required this.message,
+    required this.isDark,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final accentColor = isDark
+        ? AppColors.replyAccentDark
+        : AppColors.replyAccentLight;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        border: Border(left: BorderSide(color: accentColor, width: 3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.edit_rounded, size: 18, color: accentColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Editing',
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: accentColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  message.text.length > 100
+                      ? '${message.text.substring(0, 100)}...'
+                      : message.text,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 4),
+          IconButton(
+            icon: Icon(
+              Icons.close,
+              size: 18,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            onPressed: onClose,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minHeight: 28, minWidth: 28),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -653,28 +653,74 @@ class _EditDisplayNameBottomSheet extends StatefulWidget {
 
 class _EditDisplayNameBottomSheetState
     extends State<_EditDisplayNameBottomSheet> {
+  static const int _maxDisplayNameLength = 30;
+
   late TextEditingController _controller;
   bool _isSaving = false;
+  bool _showValidation = false;
   final CustomMessageBox _messageBox = CustomMessageBox();
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.appUser.displayName);
+    _controller.addListener(_onTextChanged);
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_onTextChanged);
     _controller.dispose();
     super.dispose();
   }
 
-  Future<void> _saveDisplayName() async {
-    final newName = _controller.text.trim();
-    if (newName.isEmpty) {
-      setState(() {
+  void _onTextChanged() {
+    if (!_showValidation) return;
+
+    final length = _controller.text.trim().length;
+
+    setState(() {
+      if (length == 0) {
         _messageBox.setValue(
           msg: 'Display name cannot be empty',
+          state: CustomMessageState.error,
+        );
+      } else if (length > _maxDisplayNameLength) {
+        _messageBox.setValue(
+          msg:
+              'Display name max is $_maxDisplayNameLength characters, you have $length characters',
+          state: CustomMessageState.error,
+        );
+      } else {
+        _messageBox.setValue(
+          msg:
+              'Display name is valid ($length/$_maxDisplayNameLength characters)',
+          state: CustomMessageState.success,
+        );
+      }
+    });
+  }
+
+  Future<void> _saveDisplayName() async {
+    final newName = _controller.text.trim();
+
+    if (newName.isEmpty) {
+      setState(() {
+        _showValidation = true;
+        _messageBox.setValue(
+          msg: 'Display name cannot be empty',
+          state: CustomMessageState.error,
+        );
+      });
+      return;
+    }
+
+    if (newName.length > _maxDisplayNameLength) {
+      setState(() {
+        _showValidation = true;
+        _messageBox.setValue(
+          msg:
+              'Display name max is $_maxDisplayNameLength characters, you have ${newName.length} characters',
           state: CustomMessageState.error,
         );
       });
@@ -775,6 +821,15 @@ class _EditDisplayNameBottomSheetState
                     message: msg,
                     isTransparent: true,
                     onDismiss: () => setState(() {
+                      _showValidation = false;
+                      _messageBox.state = CustomMessageState.none;
+                    }),
+                  ),
+                  successBox: (msg) => SuccessMessageBox(
+                    message: msg,
+                    isTransparent: true,
+                    onDismiss: () => setState(() {
+                      _showValidation = false;
                       _messageBox.state = CustomMessageState.none;
                     }),
                   ),

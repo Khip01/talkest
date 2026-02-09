@@ -100,7 +100,9 @@ class ChatTile extends StatelessWidget {
       ),
       subtitle: chat.lastMessage != null
           ? Text(
-              chat.lastMessage!.text,
+              chat.lastMessage!.isDeleted
+                  ? 'This message was deleted'
+                  : chat.lastMessage!.text,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -108,6 +110,9 @@ class ChatTile extends StatelessWidget {
                     ? Theme.of(context).colorScheme.onSurface
                     : Theme.of(context).colorScheme.onSurfaceVariant,
                 fontWeight: hasUnread ? FontWeight.w500 : FontWeight.w400,
+                fontStyle: chat.lastMessage!.isDeleted
+                    ? FontStyle.italic
+                    : FontStyle.normal,
               ),
             )
           : Text(""),

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkest/features/auth/data/auth_repository.dart';
 import 'package:talkest/features/auth/data/datasource/app_user_remote_data_source.dart';
@@ -36,6 +37,15 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
     on<MessagesUpdated>(_onMessagesUpdated);
     on<SendMessageRequested>(_onSendMessageRequested);
     on<MarkAsReadRequested>(_onMarkAsReadRequested);
+    on<ToggleMessageSelection>(_onToggleMessageSelection);
+    on<ClearSelection>(_onClearSelection);
+    on<StartEditMode>(_onStartEditMode);
+    on<CancelEditMode>(_onCancelEditMode);
+    on<EditMessageRequested>(_onEditMessageRequested);
+    on<DeleteMessagesRequested>(_onDeleteMessagesRequested);
+    on<StartReplyMode>(_onStartReplyMode);
+    on<CancelReplyMode>(_onCancelReplyMode);
+    on<CopyMessagesRequested>(_onCopyMessagesRequested);
   }
 
   Future<void> _onLoadChatDetail(
@@ -78,6 +88,18 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
         return;
       }
 
+      // fetch current user's AppUser profile
+      final currentAppUser = await _userRepository.getUserData(currentUser.uid);
+      if (currentAppUser == null) {
+        emit(
+          const ChatDetailError(
+            message: 'Failed to load your profile',
+            shouldRedirect: true,
+          ),
+        );
+        return;
+      }
+
       // Get or create chat
       final chat = await _chatRepository.getOrCreateDirectChat(
         currentUser.uid,
@@ -101,6 +123,7 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
       emit(
         ChatDetailReady(
           chatId: chat.id,
+          currentUser: currentAppUser,
           otherUser: targetUser,
           messages: const [],
         ),
@@ -147,12 +170,18 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
     final text = event.text.trim();
     if (text.isEmpty) return;
 
-    debugPrint("BLOC[CHAT_DETAIL] INFO ------------   Sending message: $text");
-    debugPrint(
-      "BLOC[CHAT_DETAIL] INFO ------------   Current messages count: ${currentState.messages.length}",
-    );
+    // capture reply context before clearing
+    final replyTo = currentState.replyingToMessage;
+    String? replyToSenderName;
+    if (replyTo != null) {
+      replyToSenderName = replyTo.senderId == currentUser.uid
+          ? 'You'
+          : currentState.otherUser.displayName;
+    }
 
-    emit(currentState.copyWith(isSending: true));
+    debugPrint("BLOC[CHAT_DETAIL] INFO ------------   Sending message: $text");
+
+    emit(currentState.copyWith(isSending: true, clearReplying: true));
 
     try {
       await _messageRepository.sendMessage(
@@ -160,6 +189,8 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
         senderId: currentUser.uid,
         text: text,
         otherUserId: currentState.otherUser.uid,
+        replyToMessage: replyTo,
+        replyToSenderName: replyToSenderName,
       );
 
       debugPrint(
@@ -192,8 +223,173 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
     try {
       await _chatRepository.markAsRead(_currentChatId!, currentUser.uid);
     } catch (e) {
-      // Silently fail - not critical
+      // silently fail - not critical
     }
+  }
+
+  // ===========================================================================
+  // Selection handlers
+  // ===========================================================================
+
+  void _onToggleMessageSelection(
+    ToggleMessageSelection event,
+    Emitter<ChatDetailState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is! ChatDetailReady) return;
+
+    final selected = Set<String>.from(currentState.selectedMessageIds);
+    if (selected.contains(event.message.id)) {
+      selected.remove(event.message.id);
+    } else {
+      selected.add(event.message.id);
+    }
+
+    emit(currentState.copyWith(selectedMessageIds: selected));
+  }
+
+  void _onClearSelection(ClearSelection event, Emitter<ChatDetailState> emit) {
+    final currentState = state;
+    if (currentState is! ChatDetailReady) return;
+
+    emit(currentState.copyWith(selectedMessageIds: {}));
+  }
+
+  // ===========================================================================
+  // Edit handlers
+  // ===========================================================================
+
+  void _onStartEditMode(StartEditMode event, Emitter<ChatDetailState> emit) {
+    final currentState = state;
+    if (currentState is! ChatDetailReady) return;
+
+    emit(
+      currentState.copyWith(
+        editingMessage: event.message,
+        selectedMessageIds: {},
+        clearReplying: true,
+      ),
+    );
+  }
+
+  void _onCancelEditMode(CancelEditMode event, Emitter<ChatDetailState> emit) {
+    final currentState = state;
+    if (currentState is! ChatDetailReady) return;
+
+    emit(currentState.copyWith(clearEditing: true));
+  }
+
+  Future<void> _onEditMessageRequested(
+    EditMessageRequested event,
+    Emitter<ChatDetailState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! ChatDetailReady) return;
+
+    final newText = event.newText.trim();
+    if (newText.isEmpty) return;
+
+    emit(currentState.copyWith(clearEditing: true));
+
+    try {
+      await _messageRepository.editMessage(
+        chatId: currentState.chatId,
+        messageId: event.messageId,
+        newText: newText,
+      );
+    } catch (e) {
+      debugPrint("BLOC[CHAT_DETAIL] ERROR ------------ Edit failed: $e");
+    }
+  }
+
+  // ===========================================================================
+  // Delete handler
+  // ===========================================================================
+
+  Future<void> _onDeleteMessagesRequested(
+    DeleteMessagesRequested event,
+    Emitter<ChatDetailState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! ChatDetailReady) return;
+
+    // clear selection right away
+    emit(currentState.copyWith(selectedMessageIds: {}));
+
+    try {
+      for (final messageId in event.messageIds) {
+        await _messageRepository.softDeleteMessage(
+          chatId: currentState.chatId,
+          messageId: messageId,
+        );
+      }
+    } catch (e) {
+      debugPrint("BLOC[CHAT_DETAIL] ERROR ------------ Delete failed: $e");
+    }
+  }
+
+  // ===========================================================================
+  // Reply handlers
+  // ===========================================================================
+
+  void _onStartReplyMode(StartReplyMode event, Emitter<ChatDetailState> emit) {
+    final currentState = state;
+    if (currentState is! ChatDetailReady) return;
+
+    emit(
+      currentState.copyWith(
+        replyingToMessage: event.message,
+        selectedMessageIds: {},
+        clearEditing: true,
+      ),
+    );
+  }
+
+  void _onCancelReplyMode(
+    CancelReplyMode event,
+    Emitter<ChatDetailState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is! ChatDetailReady) return;
+
+    emit(currentState.copyWith(clearReplying: true));
+  }
+
+  // ===========================================================================
+  // Copy handler
+  // ===========================================================================
+
+  Future<void> _onCopyMessagesRequested(
+    CopyMessagesRequested event,
+    Emitter<ChatDetailState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! ChatDetailReady) return;
+
+    // sort by createdAt ascending for logical order
+    final sorted = List<Message>.from(event.messages)
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+    final String textToCopy;
+
+    if (sorted.length == 1) {
+      // single message: copy plain text only
+      textToCopy = sorted.first.text;
+    } else {
+      // multiple messages: format with sender info
+      textToCopy = sorted
+          .map((m) {
+            final AppUser sender = m.senderId == currentState.currentUser.uid
+                ? currentState.currentUser
+                : currentState.otherUser;
+            return '${sender.displayName} [${sender.name}] \u{1F4AC}: ${m.text}';
+          })
+          .join('\n');
+    }
+
+    await Clipboard.setData(ClipboardData(text: textToCopy));
+
+    emit(currentState.copyWith(selectedMessageIds: {}));
   }
 
   @override

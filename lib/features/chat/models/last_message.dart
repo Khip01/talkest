@@ -6,6 +6,7 @@ class LastMessage {
   final String text;
   final String type;
   final DateTime createdAt;
+  final bool isDeleted;
 
   const LastMessage({
     required this.id,
@@ -13,6 +14,7 @@ class LastMessage {
     required this.text,
     required this.type,
     required this.createdAt,
+    this.isDeleted = false,
   });
 
   factory LastMessage.fromMap(Map<String, dynamic> map) {
@@ -22,6 +24,7 @@ class LastMessage {
       text: map['text'] as String,
       type: map['type'] as String,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
+      isDeleted: map['isDeleted'] as bool? ?? false,
     );
   }
 
@@ -32,6 +35,7 @@ class LastMessage {
       'text': text,
       'type': type,
       'createdAt': Timestamp.fromDate(createdAt),
+      'isDeleted': isDeleted,
     };
   }
 }

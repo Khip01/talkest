@@ -31,6 +31,8 @@ class MessageRepository {
     required String senderId,
     required String text,
     required String otherUserId,
+    Message? replyToMessage,
+    String? replyToSenderName,
   }) async {
     final batch = _firestore.batch();
     final now = DateTime.now();
@@ -49,6 +51,10 @@ class MessageRepository {
       type: 'text',
       text: text,
       createdAt: now,
+      replyToId: replyToMessage?.id,
+      replyToSenderId: replyToMessage?.senderId,
+      replyToSenderName: replyToSenderName,
+      replyToText: replyToMessage?.text,
     );
 
     batch.set(messageRef, message.toFirestore());
@@ -72,5 +78,80 @@ class MessageRepository {
 
     // 3. Commit batch
     await batch.commit();
+  }
+
+  /// Edit an existing message text
+  Future<void> editMessage({
+    required String chatId,
+    required String messageId,
+    required String newText,
+  }) async {
+    final now = DateTime.now();
+
+    final messageRef = _firestore
+        .collection(_chatsCollection)
+        .doc(chatId)
+        .collection(_messagesSubcollection)
+        .doc(messageId);
+
+    await messageRef.update({
+      'text': newText,
+      'editedAt': Timestamp.fromDate(now),
+    });
+
+    // update lastMessage if this was the latest message
+    await _updateLastMessageIfNeeded(chatId, messageId, newText: newText);
+  }
+
+  /// Soft delete a message (mark as deleted, clear text)
+  Future<void> softDeleteMessage({
+    required String chatId,
+    required String messageId,
+  }) async {
+    final messageRef = _firestore
+        .collection(_chatsCollection)
+        .doc(chatId)
+        .collection(_messagesSubcollection)
+        .doc(messageId);
+
+    await messageRef.update({'isDeleted': true, 'text': ''});
+
+    // update lastMessage if this was the latest message
+    await _updateLastMessageIfNeeded(chatId, messageId, isDeleted: true);
+  }
+
+  /// Update lastMessage on the chat doc if the edited/deleted message
+  /// is the current lastMessage
+  Future<void> _updateLastMessageIfNeeded(
+    String chatId,
+    String messageId, {
+    String? newText,
+    bool isDeleted = false,
+  }) async {
+    final chatDoc = await _firestore
+        .collection(_chatsCollection)
+        .doc(chatId)
+        .get();
+    if (!chatDoc.exists) return;
+
+    final data = chatDoc.data();
+    if (data == null) return;
+
+    final lastMessage = data['lastMessage'] as Map<String, dynamic>?;
+    if (lastMessage == null) return;
+    if (lastMessage['id'] != messageId) return;
+
+    final updates = <String, dynamic>{};
+    if (newText != null) {
+      updates['lastMessage.text'] = newText;
+    }
+    if (isDeleted) {
+      updates['lastMessage.text'] = '';
+      updates['lastMessage.isDeleted'] = true;
+    }
+
+    if (updates.isNotEmpty) {
+      await _firestore.collection(_chatsCollection).doc(chatId).update(updates);
+    }
   }
 }

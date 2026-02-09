@@ -44,8 +44,16 @@ service cloud.firestore {
                       && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
                       && request.resource.data.senderId == request.auth.uid;
 
-        // Prevent message editing and deletion from client
-        allow update, delete: if false;
+        // Only the original sender can edit or soft-delete their own message
+        allow update: if request.auth != null
+                      && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+                      && request.auth.uid == resource.data.senderId
+                      // only allow changing text, editedAt, isDeleted
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['text', 'editedAt', 'isDeleted']);
+
+        // Prevent hard deletion from client
+        allow delete: if false;
       }
     }
   }

@@ -34,6 +34,19 @@ class AppColors {
   ); // Dark green text
 
   // ============================================================================
+  // SELECTION & EDIT HIGHLIGHT COLORS
+  // ============================================================================
+
+  // light mode: soft blue tint for selected/editing messages
+  static const Color selectionHighlightLight = Color(0xFFD3E4F8);
+  // dark mode: subtle blue tint for selected/editing messages
+  static const Color selectionHighlightDark = Color(0xFF1E3456);
+
+  // reply accent bar color (uses brand primary)
+  static const Color replyAccentLight = Color(0xFF1563A3);
+  static const Color replyAccentDark = Color(0xFFA4C9FF);
+
+  // ============================================================================
   // LIGHT MODE COLOR SCHEME
   // ============================================================================
   static const ColorScheme lightColorScheme = ColorScheme(

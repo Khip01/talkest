@@ -152,14 +152,14 @@ class _AppBarDefaultConfig {
 
   double get leadingWidth => 56 + 4; // 56 means default width of leading
 
-  Widget leading(BuildContext context) {
+  Widget leading(BuildContext context, {Icon? icon, VoidCallback? onPressed}) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: CustomTextButton.icon(
         minWidth: 0,
         padding: const EdgeInsets.symmetric(horizontal: 4),
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () => context.pop(),
+        icon: icon ?? const Icon(Icons.arrow_back),
+        onPressed: onPressed ?? () => context.pop(),
       ),
     );
   }
