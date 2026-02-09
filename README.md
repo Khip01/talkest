@@ -128,7 +128,8 @@ Collections and documents are **created automatically** when the app runs for th
         │   ├── senderId: string
         │   ├── text: string
         │   ├── type: string
-        │   └── createdAt: timestamp
+        │   ├── createdAt: timestamp
+        │   └── isDeleted: boolean
         │
         └── 📁 messages (subcollection)
             └── {messageId} (document)
@@ -137,7 +138,13 @@ Collections and documents are **created automatically** when the app runs for th
                 ├── senderId: string
                 ├── type: string
                 ├── text: string
-                └── createdAt: timestamp
+                ├── createdAt: timestamp
+                ├── editedAt: timestamp (optional)
+                ├── isDeleted: boolean
+                ├── replyToId: string (optional)
+                ├── replyToSenderId: string (optional)
+                ├── replyToSenderName: string (optional)
+                └── replyToText: string (optional)
 ```
 
 ### Firestore Security Rules
