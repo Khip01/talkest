@@ -129,6 +129,8 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
       );
 
       emit(currentState.copyWith(messages: event.messages));
+
+      add(const MarkAsReadRequested());
     }
   }
 
