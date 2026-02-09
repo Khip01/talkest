@@ -50,7 +50,7 @@ class MessageBubble extends StatelessWidget {
                     : colorScheme.onSurface,
                 fontSize: 15,
               ),
-              textAlign: isCurrentUser ? TextAlign.right : TextAlign.left,
+              textAlign: TextAlign.left,
             ),
             const SizedBox(height: 4),
             Text(
