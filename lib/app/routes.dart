@@ -30,18 +30,33 @@ GoRouter createRouter(AuthRepository authRepository) {
       debugPrint('Full URI: ${state.uri}');
       debugPrint('Logging in page: $loggingIn');
 
-      // Embed user not loged in, auto redirect for embed user
+      // Embed user not logged in, redirect to root landing page (preserves embed params)
       if (user == null && isEmbed && state.matchedLocation != '/') {
-        debugPrint('   > Embed user not logged in, redirecting to Root for landing page');
+        debugPrint(
+          '   > Embed user not logged in, redirecting to Root for landing page',
+        );
         return '/?${state.uri.query}';
       }
 
-      // Redirect to login if not authenticated (preserve original URL)
+      // Non-embed user not authenticated
       if (user == null && !loggingIn && !isEmbed) {
-        final from = state.uri.toString();
-        debugPrint('   > Redirecting to /login (not authenticated)');
-        debugPrint('   > Preserving redirect URL: $from');
-        return '/login?redirect=${Uri.encodeComponent(from)}';
+        final currentPath = state.matchedLocation;
+
+        // Non-content pages (profile, QR scanner, etc.) should not be preserved
+        // as redirect target — they are utility pages, not primary destinations
+        const noRedirectPaths = ['/profile', '/s'];
+        final shouldPreserveRedirect = !noRedirectPaths.contains(currentPath);
+
+        if (shouldPreserveRedirect) {
+          final from = state.uri.toString();
+          debugPrint('   > Redirecting to /login (preserving redirect: $from)');
+          return '/login?redirect=${Uri.encodeComponent(from)}';
+        }
+
+        debugPrint(
+          '   > Redirecting to /login (from utility page: $currentPath, no redirect preserved)',
+        );
+        return '/login';
       }
 
       // Redirect to original URL after login (or default to /)

@@ -11,7 +11,6 @@ import 'package:talkest/app/theme/theme.dart';
 import 'package:talkest/features/auth/data/auth_repository.dart';
 import 'package:talkest/features/auth/data/datasource/datasources.dart';
 import 'package:talkest/features/auth/models/app_user.dart';
-import 'package:talkest/shared/utils/embed_context.dart';
 import 'package:talkest/shared/widgets/app_scaffold.dart';
 import 'package:talkest/shared/widgets/custom_filled_button.dart';
 import 'package:talkest/shared/widgets/custom_message_box.dart';
@@ -422,23 +421,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (confirmed == true && context.mounted) {
-      final state = GoRouterState.of(context);
-
-      final embed = EmbedContext.fromUri(
-        state.uri,
-        pathTargetUid: state.pathParameters['id'],
-      );
-
       await context.read<AuthRepository>().disconnect();
-      if (!context.mounted) return;
-      if (embed.isValidEmbed) {
-        context.goNamed(
-          'root',
-          queryParameters: {'embed': '1', 'targetUid': embed.targetUid!},
-        );
-      } else {
-        context.goNamed('login');
-      }
     }
   }
 }
