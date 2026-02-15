@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -94,6 +95,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
           );
         });
       }
+    }
+  }
+
+  Future<void> _copyEmailToClipboard({
+    required String label,
+    required String value,
+  }) async {
+    await Clipboard.setData(ClipboardData(text: value));
+
+    if (mounted && _messageBox != null) {
+      setState(() {
+        _messageBox.setValue(
+          msg: '$label copied to clipboard',
+          state: CustomMessageState.info,
+        );
+      });
     }
   }
 
@@ -209,6 +226,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _messageBox.state = CustomMessageState.none;
                   }),
                 ),
+                infoBox: (msg) => InfoMessageBox(
+                  message: msg,
+                  onDismiss: () => setState(() {
+                    _messageBox.state = CustomMessageState.none;
+                  }),
+                ),
               ),
 
               // ============================================================
@@ -273,12 +296,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Email
-              _AccountInfoItem(label: 'Email', value: appUser.email),
+              // UID
+              _AccountInfoItem(
+                label: 'UID',
+                value: appUser.uid,
+                onCopyValue: () =>
+                    _copyEmailToClipboard(label: 'UID', value: appUser.uid),
+                isValueCopyable: true,
+              ),
 
-              Divider(
-                height: 32,
-                color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 32 / 6),
+                child: Divider(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                ),
+              ),
+
+              // Email
+              _AccountInfoItem(
+                label: 'Email',
+                value: appUser.email,
+                onCopyValue: () =>
+                    _copyEmailToClipboard(label: 'Email', value: appUser.email),
+                isValueCopyable: true,
+              ),
+
+              Padding(
+                padding: const EdgeInsets.only(bottom: 32 / 2, top: 32 / 6),
+                child: Divider(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                ),
               ),
 
               // Sign-in provider
@@ -496,8 +543,15 @@ class _ProfileAvatar extends StatelessWidget {
 class _AccountInfoItem extends StatelessWidget {
   final String label;
   final String value;
+  final VoidCallback? onCopyValue;
+  final bool isValueCopyable;
 
-  const _AccountInfoItem({required this.label, required this.value});
+  const _AccountInfoItem({
+    required this.label,
+    required this.value,
+    this.onCopyValue,
+    this.isValueCopyable = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -513,15 +567,33 @@ class _AccountInfoItem extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        Flexible(
-          child: Text(
-            value,
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: colorScheme.onSurface,
-            ),
-            textAlign: TextAlign.end,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (isValueCopyable)
+                CustomTextButton.icon(
+                  minWidth: 0,
+                  padding: EdgeInsets.zero,
+                  icon: Icon(
+                    Icons.copy_rounded,
+                    size: 16,
+                    color: colorScheme.outline,
+                  ),
+                  onPressed: onCopyValue,
+                ),
+              Flexible(
+                child: Text(
+                  value,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: colorScheme.onSurface,
+                  ),
+                  textAlign: TextAlign.end,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
         ),
       ],
