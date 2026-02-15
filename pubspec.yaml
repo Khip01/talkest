@@ -49,6 +49,8 @@ dependencies:
   qr_flutter: ^4.1.0
   mobile_scanner: ^5.2.3
   cached_network_image: ^3.4.1
+  supabase_flutter: ^2.9.0
+  firebase_messaging: ^16.1.0
 
 dev_dependencies:
   flutter_test:

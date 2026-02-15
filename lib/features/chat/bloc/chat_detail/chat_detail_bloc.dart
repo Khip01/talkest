@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:talkest/features/auth/data/auth_repository.dart';
@@ -9,6 +10,7 @@ import 'package:talkest/features/auth/models/app_user.dart';
 import 'package:talkest/features/chat/data/chat_repository.dart';
 import 'package:talkest/features/chat/data/message_repository.dart';
 import 'package:talkest/features/chat/models/message.dart';
+import 'package:talkest/services/notification_service.dart';
 
 part 'chat_detail_event.dart';
 
@@ -196,6 +198,16 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
       debugPrint(
         "BLOC[CHAT_DETAIL] SUCCESS ------------  Message sent successfully",
       );
+
+      // Send push notification to receiver (mobile only, fire-and-forget)
+      if (!kIsWeb) {
+        _sendPushNotification(
+          receiverEmail: currentState.otherUser.email,
+          senderName: currentState.currentUser.displayName,
+          messageText: text,
+          chatId: currentState.chatId,
+        );
+      }
 
       final latestState = state;
       if (latestState is ChatDetailReady) {
@@ -390,6 +402,48 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
     await Clipboard.setData(ClipboardData(text: textToCopy));
 
     emit(currentState.copyWith(selectedMessageIds: {}));
+  }
+
+  // ===========================================================================
+  // Push notification helper (fire-and-forget)
+  // ===========================================================================
+
+  /// Fetch receiver's FCM token and invoke Edge Function.
+  void _sendPushNotification({
+    required String receiverEmail,
+    required String senderName,
+    required String messageText,
+    required String chatId,
+  }) {
+    Future(() async {
+      try {
+        final notificationService = NotificationService.instance;
+
+        final fcmToken = await notificationService.getFcmTokenByEmail(
+          receiverEmail,
+        );
+        if (fcmToken == null || fcmToken.isEmpty) {
+          debugPrint(
+            '[ChatDetailBloc] No FCM token found for $receiverEmail',
+          );
+          return;
+        }
+
+        // Truncate long messages for notification body
+        final body = messageText.length > 200
+            ? '${messageText.substring(0, 200)}...'
+            : messageText;
+
+        await notificationService.sendPushNotification(
+          fcmToken: fcmToken,
+          title: senderName,
+          body: body,
+          data: {'chatId': chatId},
+        );
+      } catch (e) {
+        debugPrint('[ChatDetailBloc] Push notification error: $e');
+      }
+    });
   }
 
   @override
