@@ -200,14 +200,12 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
       );
 
       // Send push notification to receiver (mobile only, fire-and-forget)
-      if (!kIsWeb) {
-        _sendPushNotification(
-          receiverEmail: currentState.otherUser.email,
-          senderName: currentState.currentUser.displayName,
-          messageText: text,
-          chatId: currentState.chatId,
-        );
-      }
+      _sendPushNotification(
+        receiverEmail: currentState.otherUser.email,
+        senderName: currentState.currentUser.displayName,
+        messageText: text,
+        chatId: currentState.chatId,
+      );
 
       final latestState = state;
       if (latestState is ChatDetailReady) {

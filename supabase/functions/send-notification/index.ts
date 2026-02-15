@@ -4,6 +4,11 @@ const SCOPES = ["https://www.googleapis.com/auth/firebase.messaging"];
 const FCM_SEND_URL =
   "https://fcm.googleapis.com/v1/projects/{PROJECT_ID}/messages:send";
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 // ── Base64URL helpers ────────────────────────────────────────────────────────
 
 function base64UrlEncode(data: string): string {
@@ -99,13 +104,18 @@ async function getAccessToken(serviceAccount: {
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
+
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   try {
     const { fcm_token, title, body, data } = await req.json();
 
     if (!fcm_token || !title || !body) {
       return new Response(
         JSON.stringify({ error: "Missing required fields: fcm_token, title, body" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -163,19 +173,19 @@ Deno.serve(async (req: Request) => {
       console.error("FCM error:", JSON.stringify(fcmBody));
       return new Response(
         JSON.stringify({ error: "FCM send failed", details: fcmBody }),
-        { status: fcmRes.status, headers: { "Content-Type": "application/json" } }
+        { status: fcmRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
       JSON.stringify({ success: true, messageId: fcmBody.name }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("Edge function error:", err);
     return new Response(
       JSON.stringify({ error: (err as Error).message }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

@@ -63,8 +63,6 @@ class NotificationService {
 
   /// Fetch receiver's FCM token by email from Supabase 'profiles' table.
   Future<String?> getFcmTokenByEmail(String email) async {
-    if (kIsWeb) return null;
-
     try {
       final response = await Supabase.instance.client
           .from('profiles')
@@ -87,8 +85,6 @@ class NotificationService {
     required String body,
     Map<String, String>? data,
   }) async {
-    if (kIsWeb) return;
-
     try {
       await Supabase.instance.client.functions.invoke(
         'send-notification',
