@@ -26,9 +26,7 @@ void main() async {
   );
 
   // Initialize push notifications (no-op on Web)
-  if (!kIsWeb) {
-    await NotificationService.instance.initialize();
-  }
+  await NotificationService.instance.initialize();
 
   // Initialize AuthRepository and Google Sign-In
   final authRepository = AuthRepository();
@@ -47,6 +45,20 @@ void main() async {
 
   // Inject router with AuthRepository
   final router = createRouter(authRepository);
+
+  // Listen for notification taps → navigate to chat detail
+  if (!kIsWeb) {
+    NotificationService.instance.onNotificationTap.listen((targetUserId) {
+      debugPrint('[Main] Navigating to chat/$targetUserId from notification');
+      router.go('/chat/$targetUserId');
+    });
+
+    // Handle terminated state: app was opened from a killed state by a notification tap
+    // Delayed slightly to ensure router is fully mounted
+    Future.delayed(const Duration(milliseconds: 500), () {
+      NotificationService.instance.handleTerminatedLaunch();
+    });
+  }
 
   // Initialize ThemeProvider and load saved theme
   final themeProvider = ThemeProvider();

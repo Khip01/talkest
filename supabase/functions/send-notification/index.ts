@@ -133,27 +133,38 @@ Deno.serve(async (req: Request) => {
     // Build FCM v1 endpoint
     const url = FCM_SEND_URL.replace("{PROJECT_ID}", project_id);
 
+    // Merge title/body into data so the client can display via local notif
+    const mergedData: Record<string, string> = {
+      title,
+      body,
+      ...(data ?? {}),
+    };
+
     // Build FCM v1 message payload
     const message: Record<string, unknown> = {
       message: {
         token: fcm_token,
         notification: { title, body },
+        data: mergedData,
         android: {
           priority: "high",
           notification: {
             channel_id: "chat_messages",
             sound: "default",
+            notification_priority: "PRIORITY_MAX",
+            visibility: "PUBLIC",
           },
         },
         apns: {
+          headers: { "apns-priority": "10" },
           payload: {
             aps: {
               sound: "default",
               badge: 1,
+              "mutable-content": 1,
             },
           },
         },
-        ...(data ? { data } : {}),
       },
     };
 

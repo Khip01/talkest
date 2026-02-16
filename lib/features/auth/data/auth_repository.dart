@@ -97,10 +97,13 @@ class AuthRepository {
 
   /// Register FCM token to Supabase (fire-and-forget, mobile only).
   void _registerFcmToken(String email) {
+
+    debugPrint("-------------------------------------------------- EMAILLLLL EMPTYY?? ${email.isEmpty}");
     if (kIsWeb || email.isEmpty) return;
 
     Future(() async {
       final token = await NotificationService.instance.initialize();
+      debugPrint("-------------------------------------------------- THENNN THE TOKENN??? ${token ?? "KOOOSONGGGG :)"}");
       if (token != null) {
         await NotificationService.instance.upsertFcmToken(
           email: email,

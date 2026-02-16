@@ -1,42 +1,172 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Handles FCM token management and push notification permissions.
-/// All operations are no-op on Web platform.
+/// Top-level handler for background FCM messages.
+/// Must be a top-level function (not a class method).
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  debugPrint('[FCM Background] ${message.messageId}');
+}
+
+/// Handles FCM, local notifications, channel setup, and Supabase token sync.
+/// All operations are no-op on Web.
 class NotificationService {
   NotificationService._();
   static final NotificationService instance = NotificationService._();
 
-  /// Initialize FCM and request permission (mobile only).
-  /// Returns the FCM token or null if on Web / permission denied.
+  static const _channelId = 'chat_messages';
+  static const _channelName = 'Chat Messages';
+  static const _channelDesc = 'Notifications for new chat messages';
+
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
+
+  bool _initialized = false;
+
+  /// Currently active chat ID — suppress notifications for this chat.
+  String? currentActiveChatId;
+
+  /// Stream of targetUserId from notification taps.
+  /// Listened by the app shell to navigate via GoRouter.
+  final StreamController<String> _notificationTapController =
+      StreamController<String>.broadcast();
+
+  Stream<String> get onNotificationTap => _notificationTapController.stream;
+
+  /// Track last navigated targetUserId to prevent duplicate navigations.
+  String? _lastNavigatedTargetUserId;
+  DateTime? _lastNavigatedTime;
+
+  // ── Public API ─────────────────────────────────────────────────────────────
+
+  /// Initialize FCM + local notifications (mobile only).
+  /// Returns the FCM token or null.
   Future<String?> initialize() async {
+    debugPrint("[NotificationService] Initializing... status: $_initialized");
+
     if (kIsWeb) return null;
 
-    final messaging = FirebaseMessaging.instance;
+    if (!_initialized) {
+      // 1. Create high-priority notification channel
+      await _createNotificationChannel();
 
-    // Request notification permission
-    final settings = await messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-    );
+      // 2. Init flutter_local_notifications with tap callback
+      await _initLocalNotifications();
 
-    if (settings.authorizationStatus != AuthorizationStatus.authorized &&
-        settings.authorizationStatus != AuthorizationStatus.provisional) {
-      debugPrint('[NotificationService] Permission denied');
-      return null;
+      // 3. Request FCM + Android 13+ notification permission
+      final messaging = FirebaseMessaging.instance;
+
+      final settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      if (settings.authorizationStatus != AuthorizationStatus.authorized &&
+          settings.authorizationStatus != AuthorizationStatus.provisional) {
+        debugPrint('[NotificationService] Permission denied');
+        return null;
+      }
+
+      // Request Android 13+ POST_NOTIFICATIONS permission
+      if (Platform.isAndroid) {
+        await _requestAndroid13Permission();
+      }
+
+      // 4. Register foreground message handler
+      FirebaseMessaging.onMessage.listen(_onForegroundMessage);
+
+      // 5. Register background handler
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+      // 6. Handle notification taps when app is in background
+      FirebaseMessaging.onMessageOpenedApp.listen(_handleFcmMessageTap);
+
+      // 7. Get FCM token & listen for refresh
+      messaging.onTokenRefresh.listen(_onTokenRefresh);
+
+      _initialized = true;
     }
 
-    // Retrieve FCM token
-    final token = await messaging.getToken();
-    debugPrint('[NotificationService] FCM token: $token');
-
-    // Listen for token refresh and update Supabase
-    messaging.onTokenRefresh.listen(_onTokenRefresh);
-
+    // Get FCM token
+    final token = await FirebaseMessaging.instance.getToken();
+    debugPrint('[NotificationService] Current FCM token: $token');
     return token;
+  }
+
+  /// Check if the app was opened from a terminated state by a notification tap.
+  /// Call this once after the router is ready.
+  Future<void> handleTerminatedLaunch() async {
+    if (kIsWeb) return;
+
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      debugPrint('[NotificationService] Terminated launch with message');
+      _handleFcmMessageTap(initialMessage);
+    }
+  }
+
+  /// Show a local notification with targetUserId payload for tap handling.
+  Future<void> showNotification({
+    required String senderIdentifier,
+    required String title,
+    required String body,
+    String? targetUserId,
+  }) async {
+    if (kIsWeb) return;
+
+    final notifId = _notificationIdFromSender(senderIdentifier);
+
+    const androidDetails = AndroidNotificationDetails(
+      _channelId,
+      _channelName,
+      channelDescription: _channelDesc,
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+      showWhen: true,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    // Pass targetUserId as payload so tap handler can navigate
+    await _localNotifications.show(
+      notifId,
+      title,
+      body,
+      details,
+      payload: targetUserId,
+    );
+  }
+
+  /// Dismiss all notifications from a specific sender (e.g. on chat open).
+  Future<void> cancelNotificationBySender(String senderIdentifier) async {
+    if (kIsWeb) return;
+
+    final notifId = _notificationIdFromSender(senderIdentifier);
+    await _localNotifications.cancel(notifId);
+    debugPrint('[NotificationService] Cancelled notif for $senderIdentifier');
+  }
+
+  /// Cancel all notifications.
+  Future<void> cancelAllNotifications() async {
+    if (kIsWeb) return;
+    await _localNotifications.cancelAll();
   }
 
   /// Upsert email + fcm_token into Supabase 'profiles' table.
@@ -47,21 +177,18 @@ class NotificationService {
     if (kIsWeb) return;
 
     try {
-      await Supabase.instance.client.from('profiles').upsert(
-        {
-          'email': email,
-          'fcm_token': fcmToken,
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        },
-        onConflict: 'email',
-      );
+      await Supabase.instance.client.from('profiles').upsert({
+        'email': email,
+        'fcm_token': fcmToken,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }, onConflict: 'email');
       debugPrint('[NotificationService] FCM token upserted for $email');
     } catch (e) {
       debugPrint('[NotificationService] Error upserting token: $e');
     }
   }
 
-  /// Fetch receiver's FCM token by email from Supabase 'profiles' table.
+  /// Fetch receiver's FCM token by email.
   Future<String?> getFcmTokenByEmail(String email) async {
     try {
       final response = await Supabase.instance.client
@@ -101,18 +228,7 @@ class NotificationService {
     }
   }
 
-  /// Handle FCM token refresh — update Supabase with the new token.
-  void _onTokenRefresh(String newToken) {
-    debugPrint('[NotificationService] Token refreshed: $newToken');
-
-    // Attempt to update using current Supabase auth email
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user?.email != null) {
-      upsertFcmToken(email: user!.email!, fcmToken: newToken);
-    }
-  }
-
-  /// Clear FCM token from Supabase when user signs out (mobile only).
+  /// Clear FCM token from Supabase on sign-out.
   Future<void> clearFcmToken(String email) async {
     if (kIsWeb) return;
 
@@ -128,5 +244,143 @@ class NotificationService {
     } catch (e) {
       debugPrint('[NotificationService] Error clearing token: $e');
     }
+  }
+
+  /// Clean up resources.
+  void dispose() {
+    _notificationTapController.close();
+  }
+
+  // ── Private helpers ────────────────────────────────────────────────────────
+
+  /// Create Android notification channel with max importance.
+  Future<void> _createNotificationChannel() async {
+    if (!Platform.isAndroid) return;
+
+    const channel = AndroidNotificationChannel(
+      _channelId,
+      _channelName,
+      description: _channelDesc,
+      importance: Importance.max,
+      playSound: true,
+      enableVibration: true,
+      showBadge: true,
+    );
+
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(channel);
+
+    debugPrint('[NotificationService] Channel "$_channelId" created');
+  }
+
+  /// Init flutter_local_notifications with tap response callback.
+  Future<void> _initLocalNotifications() async {
+    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosInit = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+
+    const initSettings = InitializationSettings(
+      android: androidInit,
+      iOS: iosInit,
+    );
+
+    await _localNotifications.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: _onLocalNotificationTap,
+    );
+  }
+
+  /// Handle tap on local notification (foreground-shown notifications).
+  void _onLocalNotificationTap(NotificationResponse response) {
+    final targetUserId = response.payload;
+    if (targetUserId == null || targetUserId.isEmpty) return;
+
+    debugPrint('[NotificationService] Local notif tapped: $targetUserId');
+    _emitNavigation(targetUserId);
+  }
+
+  /// Handle tap on FCM notification (background/terminated).
+  void _handleFcmMessageTap(RemoteMessage message) {
+    final targetUserId = message.data['targetUserId'] as String?;
+    if (targetUserId == null || targetUserId.isEmpty) return;
+
+    debugPrint('[NotificationService] FCM notif tapped: $targetUserId');
+    _emitNavigation(targetUserId);
+  }
+
+  /// Emit navigation event with deduplication guard.
+  void _emitNavigation(String targetUserId) {
+    final now = DateTime.now();
+
+    // Prevent duplicate navigation if same target tapped within 2 seconds
+    if (_lastNavigatedTargetUserId == targetUserId &&
+        _lastNavigatedTime != null &&
+        now.difference(_lastNavigatedTime!).inSeconds < 2) {
+      debugPrint('[NotificationService] Duplicate tap ignored');
+      return;
+    }
+
+    _lastNavigatedTargetUserId = targetUserId;
+    _lastNavigatedTime = now;
+
+    _notificationTapController.add(targetUserId);
+  }
+
+  /// Request POST_NOTIFICATIONS permission on Android 13+.
+  Future<void> _requestAndroid13Permission() async {
+    final androidPlugin = _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    if (androidPlugin == null) return;
+
+    await androidPlugin.requestNotificationsPermission();
+  }
+
+  /// Handle foreground FCM: show local notification popup.
+  void _onForegroundMessage(RemoteMessage message) {
+    final notification = message.notification;
+    if (notification == null) return;
+
+    // Suppress notification for the currently active chat
+    final incomingChatId = message.data['chatId'] as String?;
+    if (incomingChatId != null && incomingChatId == currentActiveChatId) {
+      debugPrint(
+        '[NotificationService] Suppressing notification for active chat',
+      );
+      return;
+    }
+
+    final senderEmail = message.data['senderEmail'] as String? ?? '';
+    final targetUserId = message.data['targetUserId'] as String? ?? '';
+
+    showNotification(
+      senderIdentifier: senderEmail,
+      title: notification.title ?? 'New message',
+      body: notification.body ?? '',
+      targetUserId: targetUserId,
+    );
+  }
+
+  /// Handle FCM token refresh.
+  void _onTokenRefresh(String newToken) {
+    debugPrint('[NotificationService] Token refreshed');
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user?.email != null) {
+      upsertFcmToken(email: user!.email!, fcmToken: newToken);
+    }
+  }
+
+  /// Generate a stable notification ID from sender identifier.
+  /// Same sender always maps to the same ID → stacks/replaces.
+  int _notificationIdFromSender(String senderIdentifier) {
+    if (senderIdentifier.isEmpty) return 0;
+    return senderIdentifier.hashCode & 0x7FFFFFFF; // positive 31-bit int
   }
 }

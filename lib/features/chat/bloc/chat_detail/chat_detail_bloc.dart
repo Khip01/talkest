@@ -110,6 +110,11 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
 
       _currentChatId = chat.id;
 
+      // Let the service know that we are in this chat.
+      if (!kIsWeb) {
+        NotificationService.instance.currentActiveChatId = chat.id;
+      }
+
       // Subscribe to messages
       await _messageSubscription?.cancel();
       _messageSubscription = _messageRepository
@@ -120,6 +125,13 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
 
       // Mark as read
       add(const MarkAsReadRequested());
+
+      // Dismiss notifications from this sender
+      if (!kIsWeb) {
+        NotificationService.instance.cancelNotificationBySender(
+          targetUser.email,
+        );
+      }
 
       // Emit ready with empty messages initially
       emit(
@@ -202,7 +214,9 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
       // Send push notification to receiver (mobile only, fire-and-forget)
       _sendPushNotification(
         receiverEmail: currentState.otherUser.email,
+        senderEmail: currentState.currentUser.email,
         senderName: currentState.currentUser.displayName,
+        senderUid: currentState.currentUser.uid,
         messageText: text,
         chatId: currentState.chatId,
       );
@@ -409,7 +423,9 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
   /// Fetch receiver's FCM token and invoke Edge Function.
   void _sendPushNotification({
     required String receiverEmail,
+    required String senderEmail,
     required String senderName,
+    required String senderUid,
     required String messageText,
     required String chatId,
   }) {
@@ -421,9 +437,7 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
           receiverEmail,
         );
         if (fcmToken == null || fcmToken.isEmpty) {
-          debugPrint(
-            '[ChatDetailBloc] No FCM token found for $receiverEmail',
-          );
+          debugPrint('[ChatDetailBloc] No FCM token found for $receiverEmail');
           return;
         }
 
@@ -436,7 +450,11 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
           fcmToken: fcmToken,
           title: senderName,
           body: body,
-          data: {'chatId': chatId},
+          data: {
+            'chatId': chatId,
+            'senderEmail': senderEmail,
+            'targetUserId': senderUid,
+          },
         );
       } catch (e) {
         debugPrint('[ChatDetailBloc] Push notification error: $e');
@@ -446,6 +464,10 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
 
   @override
   Future<void> close() {
+    // Reset so notifications can appear again when we are outside the room.
+    if (!kIsWeb) {
+      NotificationService.instance.currentActiveChatId = null;
+    }
     _messageSubscription?.cancel();
     return super.close();
   }

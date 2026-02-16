@@ -306,7 +306,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
 
               Padding(
-                padding: EdgeInsets.symmetric(vertical: 32 / 6),
+                padding: EdgeInsets.symmetric(vertical: 32 / 8),
                 child: Divider(
                   color: colorScheme.outlineVariant.withValues(alpha: 0.3),
                 ),
@@ -322,7 +322,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
 
               Padding(
-                padding: const EdgeInsets.only(bottom: 32 / 2, top: 32 / 6),
+                padding: const EdgeInsets.only(bottom: 32 / 2, top: 32 / 8),
                 child: Divider(
                   color: colorScheme.outlineVariant.withValues(alpha: 0.3),
                 ),
