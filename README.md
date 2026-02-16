@@ -1,17 +1,23 @@
 # Talkest.
 
+![Push Notifications](https://img.shields.io/badge/Update-Push%20Notifications%20Now%20Live!-orange?style=for-the-badge&logo=firebase)
+
 ![Flutter](https://img.shields.io/badge/Flutter-02569B?style=flat&logo=flutter&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat&logo=firebase&logoColor=black)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat&logo=supabase&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-0175C2?style=flat&logo=dart&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Web-brightgreen?style=flat)
 
-A simple real-time messaging app built with Flutter & Firebase - designed for a single purpose: **let people reach you directly from your personal website.**
+> [!NOTE]
+> **Update:** Push notifications are finally implemented! 🥳 Get notified instantly when someone reaches out through your website.
+
+A simple real-time messaging app built with Flutter, Firebase (Auth, Cloud Firestore) and Supabase (Edge Functions, Database) - designed for a single purpose: **let people reach you directly from your personal website.**
 
 No need to share social media links. No need for third-party contact forms.  
 Just embed Talkest on your website, and anyone with a Google account can start a conversation with you instantly.
 
 > **Why does this exist?**  
-> I built Talkest because I wanted a simple _"get in touch"_ solution for [my portfolio website](https://khip01.github.io/me/). Instead of redirecting visitors to social media, they can just chat with me right there,  powered by a Flutter Web widget embedded directly into the page.
+> I built Talkest because I wanted a simple _"get in touch"_ solution for [my portfolio website](https://khip01.github.io/me/). Instead of redirecting visitors to social media, they can just chat with me right there, powered by a Flutter Web widget embedded directly into the page.
 
 ## ✨ Features
 
@@ -24,23 +30,21 @@ Just embed Talkest on your website, and anyone with a Google account can start a
 - **Editable display name** — Customize how your name appears to others
 - **Embeddable chat widget** — Deploy the Flutter Web build and embed it on any website via iframe
 - **Native mobile app** — Install the Android app to monitor and reply to incoming messages on the go
+- **Push Notifications** — High-priority alerts with heads-up display, custom sounds, and auto-dismissal when chat is read.
+- **Deep Linking** — Clicking a notification takes you directly to the relevant chat room.
 
 ## 📦 Available Platforms
 
-| Platform | Status | Link |
-|----------|--------|------|
-| **Android** | ✅ Available | [Github release](https://github.com/Khip01/talkest/releases) |
-| **Web** | ✅ Available | [khip01.github.io/talkest](https://khip01.github.io/talkest/) |
-| **Embedded mode** | ✅ Available | Used on [my portfolio](https://khip01.github.io/me/) |
-| **iOS** | ❌ Not yet | _No Mac device available for development_ |
-
-> [!NOTE]
-> Push notifications are currently not implemented.  
-> A complete push notification flow requires Firebase Cloud Functions to trigger Firebase Cloud Messaging (FCM), which depends on the Blaze (pay-as-you-go) plan.
+| Platform          | Status       | Link                                                          |
+| ----------------- | ------------ | ------------------------------------------------------------- |
+| **Android**       | ✅ Available | [Github release](https://github.com/Khip01/talkest/releases)  |
+| **Web**           | ✅ Available | [khip01.github.io/talkest](https://khip01.github.io/talkest/) |
+| **Embedded mode** | ✅ Available | Used on [my portfolio](https://khip01.github.io/me/)          |
+| **iOS**           | ❌ Not yet   | _No Mac device available for development_                     |
 
 ## 📸 Screenshots
 
-<!-- 
+<!--
   ┌─────────────────────────────────────────────────────────────────┐
   │  HOW TO ADD SCREENSHOTS:                                       │
   │                                                                 │
@@ -71,24 +75,26 @@ Just embed Talkest on your website, and anyone with a Google account can start a
 
 ### Embedded Mode (on website)
 
-| Embed mode — Landing page on portfolio website |
-|:-----------------------------------------------:|
+|                             Embed mode — Landing page on portfolio website                              |
+| :-----------------------------------------------------------------------------------------------------: |
 | <img src="https://i.ibb.co.com/DHTnVznT/embed-landing-screen.png" alt="Embed Landing Page" width="600"> |
 
-| Embed mode — Chat view on portfolio website |
-|:--------------------------------------------:|
+|                           Embed mode — Chat view on portfolio website                           |
+| :---------------------------------------------------------------------------------------------: |
 | <img src="https://i.ibb.co.com/hRBSzRnH/embed-chat-view.png" alt="Embed Chat View" width="600"> |
 
 ## 🛠 Tech Stack
 
-| Category | Technology |
-|----------|-----------|
-| Framework | [Flutter](https://flutter.dev/) (Dart) |
-| Backend | [Firebase](https://firebase.google.com/) (Auth, Cloud Firestore) |
-| Authentication | Google Sign-In |
-| State Management | BLoC + Provider |
-| Routing | GoRouter |
-| Deployment | GitHub Pages (Web), APK (Android) |
+| Category            | Technology                                                       |
+| ------------------- | ---------------------------------------------------------------- |
+| Framework           | [Flutter](https://flutter.dev/) (Dart)                           |
+| Backend (Primary)   | [Firebase](https://firebase.google.com/) (Auth, Cloud Firestore) |
+| Backend (Functions) | [Supabase](https://supabase.com/) (Edge Functions, Database)     |
+| Push Notifications  | Firebase Cloud Messaging (FCM v1)                                |
+| Authentication      | Google Sign-In                                                   |
+| State Management    | BLoC + Provider                                                  |
+| Routing             | GoRouter                                                         |
+| Deployment          | GitHub Pages (Web), APK (Android)                                |
 
 ---
 
@@ -153,6 +159,7 @@ Security rules are defined in [`firestore.rules`](firestore.rules).
 
 > [!IMPORTANT]
 > The included rules are stricter than the default test-mode rules. They enforce that:
+>
 > - Users can only **write** to their own profile
 > - Only chat **participants** can read/write chats and messages
 > - Messages can only be **created** (no editing or deleting from client)
@@ -163,9 +170,9 @@ Security rules are defined in [`firestore.rules`](firestore.rules).
 
 This project requires a composite index for querying chats. The index configuration is defined in [`firestore.indexes.json`](firestore.indexes.json).
 
-| Collection | Fields | Query Scope |
-|------------|--------|-------------|
-| `chats` | `participants` (Array) + `updatedAt` (Descending) | Collection |
+| Collection | Fields                                            | Query Scope |
+| ---------- | ------------------------------------------------- | ----------- |
+| `chats`    | `participants` (Array) + `updatedAt` (Descending) | Collection  |
 
 > [!TIP]
 > If you skip deploying indexes, Firestore will show an error with a direct link to create the required index when the app first runs a query that needs it.
@@ -209,44 +216,84 @@ firebase deploy --only firestore:indexes --project YOUR_PROJECT_ID
        - `https://your-domain.firebaseapp.com/__/auth/handler`
    - Copy the generated **Client ID**
 
+### Supabase Structure (PostgreSQL)
+
+The `profiles` table in Supabase is used to sync FCM tokens for notification delivery:
+
+```sql
+create table profiles (
+  id uuid references auth.users on delete cascade,
+  email text unique,
+  fcm_token text,
+  updated_at timestamp with time zone,
+  primary key (id)
+);
+```
+
+### Push Notification Setup (Supabase - Edge Functions)
+
+Talkest uses Supabase Edge Functions to trigger FCM v1.
+
+1. **Service Account:** Place your Firebase Service Account JSON in the Edge Function environment.
+2. **Environment Variables:** Set up the following in your Supabase project:
+   - `FIREBASE_SERVICE_ACCOUNT`: Your JSON key.
+3. **Deployment:**
+   ```bash
+   supabase functions deploy send-notification
+   ```
+
 ### Running the App
 
 **Web (Development):**
+
 ```bash
-flutter run -d <web-device> --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_CLIENT_ID.apps.googleusercontent.com
+flutter run -d chrome \
+  --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_CLIENT_ID.apps.googleusercontent.com \
+  --dart-define=SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 ```
 
 **Mobile (Android/iOS):**
+
 ```bash
-flutter run -d <device-id>
+flutter run -d <device-id> \
+  --dart-define=SUPABASE_ANON_KEY=YOUR_SUPABASE_KEY
 ```
 
 ### Building for Production:
 
 **Web (Release)**
+
 ```bash
-flutter build web --elease --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_CLIENT_ID.apps.googleusercontent.com
+flutter build web --release \
+  --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_WEB_ID.apps.googleusercontent.com \
+  --dart-define=SUPABASE_ANON_KEY=YOUR_SUPABASE_KEY
 ```
+
 > [!IMPORTANT]
 > Web builds require the Google Web Client ID for authentication.
 
 **Mobile (Release)**
-```bash
-flutter build --release
-```
-> Mobile builds do not require additional parameters and can be built normally in release mode.
 
+```bash
+flutter build --release \
+  --dart-define=SUPABASE_ANON_KEY=YOUR_SUPABASE_KEY
+```
+
+> [!IMPORTANT]
+> Mobile builds now require the SUPABASE_ANON_KEY to sync FCM tokens and send notifications.
 
 ### Embed Mode
 
 Talkest supports an embedded chat widget mode, designed to be loaded inside an `<iframe>` on any website. This allows visitors to chat with a specific user directly from your page.
 
 **URL format:**
+
 ```
 https://your-talkest-deployment.com/?embed=1&targetUid=FIREBASE_USER_UID
 ```
 
 **Example iframe usage:**
+
 ```html
 <iframe
   src="https://khip01.github.io/talkest/?embed=1&targetUid=YOUR_FIREBASE_UID"
@@ -267,6 +314,7 @@ https://your-talkest-deployment.com/?embed=1&targetUid=FIREBASE_USER_UID
 > You can find your Firebase UID in the [Firebase Console](https://console.firebase.google.com) → **Authentication** → **Users** tab.
 
 In embed mode, the app will:
+
 - Show a landing page with a sign-in prompt for unauthenticated visitors
 - Automatically open a direct chat with the target user after sign-in
 - Hide navigation elements like the FAB and profile access for a clean widget experience
