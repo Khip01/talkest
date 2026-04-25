@@ -14,6 +14,58 @@
       },
       "oauth_client": [
         {
+          "client_id": "730361736768-cegqf3vm1qeo3vvh990com337rb8oa4f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.khip.talkest",
+            "certificate_hash": "8eadcfa91e917f0b53f965f43a6d9800d06b4d46"
+          }
+        },
+        {
+          "client_id": "730361736768-0bp624scmuk8jibgeudphelr2idgnpl8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBe-GIjxTzFdYGDQ5biFPrvOeKNzKFlQe4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "730361736768-0bp624scmuk8jibgeudphelr2idgnpl8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "730361736768-8b86e3i7sqpkaav82pbv9n7vtb6ukd1p.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.khip.talkest"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:730361736768:android:20961b99f2c9b9b48279a5",
+        "android_client_info": {
+          "package_name": "com.khip.talkest.debug"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "730361736768-qmq44mlc9677t3out99bv9p51ai95mjb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.khip.talkest.debug",
+            "certificate_hash": "47c099b3f156a7a1b770be78e88a3f51255bffd4"
+          }
+        },
+        {
           "client_id": "730361736768-0bp624scmuk8jibgeudphelr2idgnpl8.apps.googleusercontent.com",
           "client_type": 3
         }
