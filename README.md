@@ -8,8 +8,8 @@
 ![Dart](https://img.shields.io/badge/Dart-0175C2?style=flat&logo=dart&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Web-brightgreen?style=flat)
 
-> [!NOTE]
-> **Update:** Push notifications are finally implemented! 🥳 Get notified instantly when someone reaches out through your website.
+> [!WARNING]
+> **🚧 Work in Progress:** We are currently experiencing issues with push notifications due to Supabase Free Tier auto-pause policies (which permanently pauses inactive projects). A migration from Supabase Edge Functions to a 100% free Vercel Serverless architecture is currently **ongoing**.
 
 A simple real-time messaging app built with Flutter, Firebase (Auth, Cloud Firestore) and Supabase (Edge Functions, Database) - designed for a single purpose: **let people reach you directly from your personal website.**
 
@@ -89,7 +89,7 @@ Just embed Talkest on your website, and anyone with a Google account can start a
 | ------------------- | ---------------------------------------------------------------- |
 | Framework           | [Flutter](https://flutter.dev/) (Dart)                           |
 | Backend (Primary)   | [Firebase](https://firebase.google.com/) (Auth, Cloud Firestore) |
-| Backend (Functions) | [Supabase](https://supabase.com/) (Edge Functions, Database)     |
+| Backend (Functions) | [Supabase](https://supabase.com/) *(Migrating to Vercel)* |
 | Push Notifications  | Firebase Cloud Messaging (FCM v1)                                |
 | Authentication      | Google Sign-In                                                   |
 | State Management    | BLoC + Provider                                                  |
@@ -216,6 +216,52 @@ firebase deploy --only firestore:indexes --project YOUR_PROJECT_ID
        - `https://your-domain.firebaseapp.com/__/auth/handler`
    - Copy the generated **Client ID**
 
+### Android Configuration & Google Sign-In
+
+To run the Android app locally (`.debug` flavor) and ensure Google Sign-In works, you must configure your local debug SHA-1 fingerprint with your Firebase project.
+
+**1. Generate Local SHA-1 Fingerprint** \
+Navigate to the `android` directory and run the Gradle signing report command:
+
+```bash
+cd android
+./gradlew signingReport
+```
+
+Look for the `SHA1` string under the `Variant: debug` and `Config: debug` section. This fingerprint is tied to your machine's local `debug.keystore` (typically located at `~/.android/debug.keystore` on Linux/macOS or `C:\Users\USERNAME\.android\debug.keystore` on Windows).
+
+**2. Register the Debug App in Firebase** \
+Go to your Firebase Console and add a new Android app. Use the debug package name specifically: `com.khip.talkest.debug`.
+
+**3. Add Fingerprints** \
+Paste the SHA-1 and SHA-256 fingerprints you obtained from the terminal into the Firebase Console for this debug app.
+
+**4. Download Configuration** \
+Download the updated `google-services.json` file from the Firebase Console. This file will now contain the crucial `client_type: 1` block with your local OAuth client ID.
+
+**5. Place the File** \
+Move the downloaded `google-services.json` into the `android/app/` directory of your cloned project, replacing any existing file.
+
+**6. Clean and Rebuild** \
+Run the following commands to ensure no cached configurations cause issues:
+
+```bash
+flutter clean
+flutter pub get
+cd android && ./gradlew clean
+cd ..
+flutter run -d <device-id> --dart-define=SUPABASE_ANON_KEY=YOUR_SUPABASE_KEY
+```
+
+---
+
+### 🚨 Notice: Supabase Deprecation (WIP)
+
+>  [!IMPORTANT]
+> Currently, Talkest uses Supabase (PostgreSQL & Edge Functions) for storing FCM tokens and triggering Push Notifications. However, due to Supabase automatically pausing inactive Free Tier projects (which breaks the notification system for low-traffic personal apps), **we are planning to migrate away from Supabase completely.**
+>
+> The transition to storing tokens directly in Firestore and using Vercel Serverless Functions is currently ongoing. The setup instructions below remain for the legacy Supabase implementation until the migration is completed.
+
 ### Supabase Structure (PostgreSQL)
 
 The `profiles` table in Supabase is used to sync FCM tokens for notification delivery:
@@ -241,6 +287,8 @@ Talkest uses Supabase Edge Functions to trigger FCM v1.
    ```bash
    supabase functions deploy send-notification
    ```
+
+---
 
 ### Running the App
 
@@ -324,6 +372,16 @@ In embed mode, the app will:
 - [Flutter Documentation](https://docs.flutter.dev/)
 - [Firebase Setup Guide](https://firebase.google.com/docs/flutter/setup)
 - [Google Sign-In for Flutter](https://pub.dev/packages/google_sign_in)
+
+---
+
+## ⚠️ Troubleshooting
+
+**Google Sign-In Error: `[16] Account reauth failed`**
+
+This error occurs on Android when the SHA-1 fingerprint of the machine compiling the app does not match the fingerprint registered in Firebase.
+
+When you clone this repository, your machine generates its own unique `debug.keystore`. The Google Sign-In package blocks authentication because your local fingerprint is not whitelisted. To fix this, follow the steps in the **Android Configuration & Google Sign-In** section above to register your personal local SHA-1 fingerprint to your Firebase project and update the `google-services.json` file.
 
 ---
 
