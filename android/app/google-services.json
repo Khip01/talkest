@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "730361736768-4566p0ukotft273j6qel3q0a4mt0fhcd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.khip.talkest",
+            "certificate_hash": "47c099b3f156a7a1b770be78e88a3f51255bffd4"
+          }
+        },
+        {
           "client_id": "730361736768-cegqf3vm1qeo3vvh990com337rb8oa4f.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
