@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:talkest/app/app.dart';
 import 'package:talkest/app/provider/theme_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -15,15 +14,6 @@ void main() async {
 
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // Initialize Supabase
-  await Supabase.initialize(
-    url: const String.fromEnvironment(
-      'SUPABASE_URL',
-      defaultValue: 'https://ljcwzhfhhhryrrrdsxgp.supabase.co',
-    ),
-    anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
-  );
 
   // Initialize push notifications (no-op on Web)
   await NotificationService.instance.initialize();

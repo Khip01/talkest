@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:http/http.dart' as http;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Top-level handler for background FCM messages.
 /// Must be a top-level function (not a class method).
@@ -17,6 +19,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 /// All operations are no-op on Web.
 class NotificationService {
   NotificationService._();
+
   static final NotificationService instance = NotificationService._();
 
   static const _channelId = 'chat_messages';
@@ -27,6 +30,7 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   bool _initialized = false;
+  String? _currentUserUid; // To track current user for token refresh updates
 
   /// Currently active chat ID — suppress notifications for this chat.
   String? currentActiveChatId;
@@ -45,11 +49,16 @@ class NotificationService {
   // ── Public API ─────────────────────────────────────────────────────────────
 
   /// Initialize FCM + local notifications (mobile only).
+  /// Requires current user UID to handle token refresh events properly.
   /// Returns the FCM token or null.
-  Future<String?> initialize() async {
+  Future<String?> initialize({String? uid}) async {
     debugPrint("[NotificationService] Initializing... status: $_initialized");
 
     if (kIsWeb) return null;
+
+    if (uid != null) {
+      _currentUserUid = uid;
+    }
 
     if (!_initialized) {
       // 1. Create high-priority notification channel
@@ -169,43 +178,42 @@ class NotificationService {
     await _localNotifications.cancelAll();
   }
 
-  /// Upsert email + fcm_token into Supabase 'profiles' table.
+  /// Upsert FCM token into Firestore 'app_users' collection.
   Future<void> upsertFcmToken({
-    required String email,
+    required String uid,
     required String fcmToken,
   }) async {
     if (kIsWeb) return;
 
     try {
-      await Supabase.instance.client.from('profiles').upsert({
-        'email': email,
-        'fcm_token': fcmToken,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      }, onConflict: 'email');
-      debugPrint('[NotificationService] FCM token upserted for $email');
+      await FirebaseFirestore.instance.collection('app_users').doc(uid).set({
+        'fcmToken': fcmToken,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      debugPrint('[NotificationService] FCM token upserted for $uid');
     } catch (e) {
       debugPrint('[NotificationService] Error upserting token: $e');
     }
   }
 
-  /// Fetch receiver's FCM token by email.
-  Future<String?> getFcmTokenByEmail(String email) async {
+  /// Fetch receiver's FCM token by UID from Firestore.
+  Future<String?> getFcmTokenByUid(String uid) async {
     try {
-      final response = await Supabase.instance.client
-          .from('profiles')
-          .select('fcm_token')
-          .eq('email', email)
-          .maybeSingle();
+      final doc = await FirebaseFirestore.instance
+          .collection('app_users')
+          .doc(uid)
+          .get();
 
-      if (response == null) return null;
-      return response['fcm_token'] as String?;
+      if (!doc.exists) return null;
+      final data = doc.data();
+      return data?['fcmToken'] as String?;
     } catch (e) {
       debugPrint('[NotificationService] Error fetching token: $e');
       return null;
     }
   }
 
-  /// Send push notification via Supabase Edge Function.
+  /// Send push notification via Vercel Serverless Function.
   Future<void> sendPushNotification({
     required String fcmToken,
     required String title,
@@ -213,34 +221,47 @@ class NotificationService {
     Map<String, String>? data,
   }) async {
     try {
-      await Supabase.instance.client.functions.invoke(
-        'send-notification',
-        body: {
+      // Define URL in run/build command: --dart-define=VERCEL_API_URL=https://...
+      const String apiUrl = String.fromEnvironment('VERCEL_API_URL', defaultValue: '');
+
+      if (apiUrl.isEmpty) {
+        debugPrint('[NotificationService] WARNING: VERCEL_API_URL is empty. Cannot send push.');
+        return;
+      }
+
+      final uri = Uri.parse('$apiUrl/api/send-notification');
+
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
           'fcm_token': fcmToken,
           'title': title,
           'body': body,
           if (data != null) 'data': data,
-        },
+        }),
       );
-      debugPrint('[NotificationService] Push notification sent');
+
+      if (response.statusCode == 200) {
+        debugPrint('[NotificationService] Push notification sent via Vercel');
+      } else {
+        debugPrint('[NotificationService] Vercel push failed: ${response.statusCode} - ${response.body}');
+      }
     } catch (e) {
       debugPrint('[NotificationService] Error sending notification: $e');
     }
   }
 
-  /// Clear FCM token from Supabase on sign-out.
-  Future<void> clearFcmToken(String email) async {
+  /// Clear FCM token from Firestore on sign-out.
+  Future<void> clearFcmToken(String uid) async {
     if (kIsWeb) return;
 
     try {
-      await Supabase.instance.client
-          .from('profiles')
-          .update({
-            'fcm_token': null,
-            'updated_at': DateTime.now().toUtc().toIso8601String(),
-          })
-          .eq('email', email);
-      debugPrint('[NotificationService] FCM token cleared for $email');
+      await FirebaseFirestore.instance.collection('app_users').doc(uid).update({
+        'fcmToken': FieldValue.delete(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      debugPrint('[NotificationService] FCM token cleared for $uid');
     } catch (e) {
       debugPrint('[NotificationService] Error clearing token: $e');
     }
@@ -368,12 +389,13 @@ class NotificationService {
     );
   }
 
-  /// Handle FCM token refresh.
+  /// Handle FCM token refresh. Updates Firestore using the currently tracked UID.
   void _onTokenRefresh(String newToken) {
     debugPrint('[NotificationService] Token refreshed');
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user?.email != null) {
-      upsertFcmToken(email: user!.email!, fcmToken: newToken);
+    if (_currentUserUid != null) {
+      upsertFcmToken(uid: _currentUserUid!, fcmToken: newToken);
+    } else {
+      debugPrint('[NotificationService] Token refreshed but UID is null. Cannot update Firestore.');
     }
   }
 

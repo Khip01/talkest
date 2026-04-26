@@ -8,10 +8,7 @@
 ![Dart](https://img.shields.io/badge/Dart-0175C2?style=flat&logo=dart&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Web-brightgreen?style=flat)
 
-> [!WARNING]
-> **🚧 Work in Progress:** We are currently experiencing issues with push notifications due to Supabase Free Tier auto-pause policies (which permanently pauses inactive projects). A migration from Supabase Edge Functions to a 100% free Vercel Serverless architecture is currently **ongoing**.
-
-A simple real-time messaging app built with Flutter, Firebase (Auth, Cloud Firestore) and Supabase (Edge Functions, Database) - designed for a single purpose: **let people reach you directly from your personal website.**
+A simple real-time messaging app built with Flutter, Firebase (Auth, Cloud Firestore) and Vercel (Serverless Functions) - designed for a single purpose: **let people reach you directly from your personal website.**
 
 No need to share social media links. No need for third-party contact forms.  
 Just embed Talkest on your website, and anyone with a Google account can start a conversation with you instantly.
@@ -89,7 +86,7 @@ Just embed Talkest on your website, and anyone with a Google account can start a
 | ------------------- | ---------------------------------------------------------------- |
 | Framework           | [Flutter](https://flutter.dev/) (Dart)                           |
 | Backend (Primary)   | [Firebase](https://firebase.google.com/) (Auth, Cloud Firestore) |
-| Backend (Functions) | [Supabase](https://supabase.com/) *(Migrating to Vercel)* |
+| Backend (Functions) | [Vercel](https://vercel.com/) (Serverless Functions Node.js)     |
 | Push Notifications  | Firebase Cloud Messaging (FCM v1)                                |
 | Authentication      | Google Sign-In                                                   |
 | State Management    | BLoC + Provider                                                  |
@@ -118,6 +115,7 @@ Collections and documents are **created automatically** when the app runs for th
 │       ├── email: string
 │       ├── photoUrl: string
 │       ├── provider: string
+│       ├── fcmToken: string (optional)
 │       ├── createdAt: timestamp
 │       ├── updatedAt: timestamp
 │       └── lastLoginAt: timestamp
@@ -255,38 +253,18 @@ flutter run -d <device-id> --dart-define=SUPABASE_ANON_KEY=YOUR_SUPABASE_KEY
 
 ---
 
-### 🚨 Notice: Supabase Deprecation (WIP)
+### Push Notification Setup (Vercel Serverless Functions)
 
->  [!IMPORTANT]
-> Currently, Talkest uses Supabase (PostgreSQL & Edge Functions) for storing FCM tokens and triggering Push Notifications. However, due to Supabase automatically pausing inactive Free Tier projects (which breaks the notification system for low-traffic personal apps), **we are planning to migrate away from Supabase completely.**
->
-> The transition to storing tokens directly in Firestore and using Vercel Serverless Functions is currently ongoing. The setup instructions below remain for the legacy Supabase implementation until the migration is completed.
+Talkest uses a lightweight Node.js Serverless Function deployed on Vercel to securely send FCM v1 payloads without exposing the Firebase Service Account on the client side.
 
-### Supabase Structure (PostgreSQL)
-
-The `profiles` table in Supabase is used to sync FCM tokens for notification delivery:
-
-```sql
-create table profiles (
-  id uuid references auth.users on delete cascade,
-  email text unique,
-  fcm_token text,
-  updated_at timestamp with time zone,
-  primary key (id)
-);
-```
-
-### Push Notification Setup (Supabase - Edge Functions)
-
-Talkest uses Supabase Edge Functions to trigger FCM v1.
-
-1. **Service Account:** Place your Firebase Service Account JSON in the Edge Function environment.
-2. **Environment Variables:** Set up the following in your Supabase project:
-   - `FIREBASE_SERVICE_ACCOUNT`: Your JSON key.
-3. **Deployment:**
-   ```bash
-   supabase functions deploy send-notification
-   ```
+1. **Clone the API:** Get the companion backend code from the [talkest-api repository](https://github.com/Khip01/talkest-api).
+2. **Firebase Service Account:** Generate a new Private Key from your Firebase Console (`Project Settings` -> `Service Accounts` -> `Generate new private key`).
+3. **Vercel Deployment:**
+    - Import the `talkest-api` repository to your [Vercel](https://vercel.com) dashboard.
+    - Go to the project's **Settings** → **Environment Variables**.
+    - Add a new variable named `FIREBASE_SERVICE_ACCOUNT` and paste the entire JSON content of your service account key.
+    - Deploy the project.
+4. **Link to Flutter:** Copy your Vercel domain (e.g., `https://talkest-api.vercel.app`) to use as the `--dart-define` argument when running or building the app.
 
 ---
 
@@ -297,14 +275,14 @@ Talkest uses Supabase Edge Functions to trigger FCM v1.
 ```bash
 flutter run -d chrome \
   --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_CLIENT_ID.apps.googleusercontent.com \
-  --dart-define=SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+  --dart-define=VERCEL_API_URL=https://your-talkest-api.vercel.app
 ```
 
 **Mobile (Android/iOS):**
 
 ```bash
 flutter run -d <device-id> \
-  --dart-define=SUPABASE_ANON_KEY=YOUR_SUPABASE_KEY
+  --dart-define=VERCEL_API_URL=https://your-talkest-api.vercel.app
 ```
 
 ### Building for Production:
@@ -314,7 +292,7 @@ flutter run -d <device-id> \
 ```bash
 flutter build web --release \
   --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_WEB_ID.apps.googleusercontent.com \
-  --dart-define=SUPABASE_ANON_KEY=YOUR_SUPABASE_KEY
+  --dart-define=VERCEL_API_URL=https://your-talkest-api.vercel.app
 ```
 
 > [!IMPORTANT]
@@ -323,12 +301,12 @@ flutter build web --release \
 **Mobile (Release)**
 
 ```bash
-flutter build --release \
-  --dart-define=SUPABASE_ANON_KEY=YOUR_SUPABASE_KEY
+flutter build apk --release \
+  --dart-define=VERCEL_API_URL=https://your-talkest-api.vercel.app
 ```
 
 > [!IMPORTANT]
-> Mobile builds now require the SUPABASE_ANON_KEY to sync FCM tokens and send notifications.
+> Mobile builds require the `VERCEL_API_URL` to successfully trigger push notifications.
 
 ### Embed Mode
 

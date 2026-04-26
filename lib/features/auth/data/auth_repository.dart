@@ -49,7 +49,8 @@ class AuthRepository {
       await _appUserDataSource.updateUserData(updatedUser);
 
       // Register FCM token after sign-in (mobile only)
-      _registerFcmToken(updatedUser.email);
+      // _registerFcmToken(updatedUser.email);
+      _registerFcmToken(updatedUser.uid);
 
       return updatedUser;
     }
@@ -70,43 +71,44 @@ class AuthRepository {
     await _appUserDataSource.createNewUserData(newUser);
 
     // Register FCM token after sign-in (mobile only)
-    _registerFcmToken(newUser.email);
+    // _registerFcmToken(newUser.email);
+    _registerFcmToken(newUser.uid);
 
     return newUser;
   }
 
   Future<void> signOut() async {
     // Clear FCM token before signing out (mobile only)
-    final email = _authDataSource.currentUser?.email;
-    if (!kIsWeb && email != null) {
-      await NotificationService.instance.clearFcmToken(email);
+    final uid = _authDataSource.currentUser?.uid;
+    if (!kIsWeb && uid != null) {
+      await NotificationService.instance.clearFcmToken(uid);
     }
     await _authDataSource.signOut();
   }
 
   Future<void> disconnect() async {
     // Clear FCM token before disconnecting (mobile only)
-    final email = _authDataSource.currentUser?.email;
-    if (!kIsWeb && email != null) {
-      await NotificationService.instance.clearFcmToken(email);
+    final uid = _authDataSource.currentUser?.uid;
+    if (!kIsWeb && uid != null) {
+      await NotificationService.instance.clearFcmToken(uid);
     }
     await _authDataSource.disconnect();
   }
 
   User? get currentUser => _authDataSource.currentUser;
 
-  /// Register FCM token to Supabase (fire-and-forget, mobile only).
-  void _registerFcmToken(String email) {
-
-    debugPrint("-------------------------------------------------- EMAILLLLL EMPTYY?? ${email.isEmpty}");
-    if (kIsWeb || email.isEmpty) return;
+  /// Register FCM token to Firestore (fire-and-forget, mobile only).
+  void _registerFcmToken(String uid) {
+    debugPrint("-------------------------------------------------- UID EMPTYY?? ${uid.isEmpty}");
+    if (kIsWeb || uid.isEmpty) return;
 
     Future(() async {
-      final token = await NotificationService.instance.initialize();
-      debugPrint("-------------------------------------------------- THENNN THE TOKENN??? ${token ?? "KOOOSONGGGG :)"}");
+      // Pass the UID to initialize so the service can track it for token refreshes
+      final token = await NotificationService.instance.initialize(uid: uid);
+      debugPrint("-------------------------------------------------- THENNN THE TOKENN??? ${token ?? "EMPTY :)"}");
       if (token != null) {
         await NotificationService.instance.upsertFcmToken(
-          email: email,
+          uid: uid,
           fcmToken: token,
         );
       }

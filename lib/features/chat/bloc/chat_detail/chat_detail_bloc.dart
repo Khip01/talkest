@@ -213,7 +213,7 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
 
       // Send push notification to receiver (mobile only, fire-and-forget)
       _sendPushNotification(
-        receiverEmail: currentState.otherUser.email,
+        receiverUid: currentState.otherUser.uid,
         senderEmail: currentState.currentUser.email,
         senderName: currentState.currentUser.displayName,
         senderUid: currentState.currentUser.uid,
@@ -422,7 +422,7 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
 
   /// Fetch receiver's FCM token and invoke Edge Function.
   void _sendPushNotification({
-    required String receiverEmail,
+    required String receiverUid,
     required String senderEmail,
     required String senderName,
     required String senderUid,
@@ -433,11 +433,11 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
       try {
         final notificationService = NotificationService.instance;
 
-        final fcmToken = await notificationService.getFcmTokenByEmail(
-          receiverEmail,
+        final fcmToken = await notificationService.getFcmTokenByUid(
+          receiverUid,
         );
         if (fcmToken == null || fcmToken.isEmpty) {
-          debugPrint('[ChatDetailBloc] No FCM token found for $receiverEmail');
+          debugPrint('[ChatDetailBloc] No FCM token found for $receiverUid');
           return;
         }
 
