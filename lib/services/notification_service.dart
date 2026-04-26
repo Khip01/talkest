@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
@@ -213,7 +214,7 @@ class NotificationService {
     }
   }
 
-  /// Send push notification via Vercel Serverless Function.
+  /// Send push notification via Vercel Serverless Function securely using Firebase ID Token.
   Future<void> sendPushNotification({
     required String fcmToken,
     required String title,
@@ -229,11 +230,30 @@ class NotificationService {
         return;
       }
 
+      /// GET FIREBASE DYNAMIC TOKEN
+      // Get the current user from Firebase Auth
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        debugPrint('[NotificationService] WARNING: No authenticated user. Cannot send push.');
+        return;
+      }
+
+      // Request a fresh token ID (Firebase will automatically refresh it if it expires)
+      final idToken = await currentUser.getIdToken();
+      if (idToken == null) {
+        debugPrint('[NotificationService] WARNING: Failed to get ID Token.');
+        return;
+      }
+
+      /// CONTINUE TO PUSH NOTIF
       final uri = Uri.parse('$apiUrl/api/send-notification');
 
       final response = await http.post(
         uri,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $idToken', // Bearer token from firebase
+        },
         body: jsonEncode({
           'fcm_token': fcmToken,
           'title': title,
