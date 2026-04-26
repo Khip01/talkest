@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:talkest/app/theme/text_styles.dart';
 import 'package:talkest/features/auth/data/auth_repository.dart';
@@ -164,30 +165,54 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         children: [
                           const TextSpan(
-                            text: 'By continuing, you agree to our ',
+                            text: 'By continuing, you agree to our',
                           ),
-                          TextSpan(
-                            text: 'Terms of Service',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              fontWeight: FontWeight.w500,
-                              decoration: TextDecoration.underline,
-                              color: Theme.of(context).colorScheme.primary,
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(4),
+                              onTap: () => context.goNamed('terms_screen'),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 6,
+                                  horizontal: 6,
+                                ),
+                                child: Text(
+                                  'Terms of Service',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                    decoration: TextDecoration.underline,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                                ),
+                              ),
                             ),
-                            recognizer: TapGestureRecognizer()
-                              // ..onTap = () => _openUrl('https://yourapp.com/terms'),
-                              ..onTap = () {},
                           ),
-                          const TextSpan(text: ' and '),
-                          TextSpan(
-                            text: 'Privacy Policy',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              fontWeight: FontWeight.w500,
-                              decoration: TextDecoration.underline,
-                              color: Theme.of(context).colorScheme.primary,
+                          const TextSpan(text: 'and'),
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(4),
+                              onTap: () => context.goNamed('privacy_screen'),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 6,
+                                  horizontal: 6,
+                                ),
+                                child: Text(
+                                  'Privacy Policy',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                    decoration: TextDecoration.underline,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                                ),
+                              ),
                             ),
-                            recognizer: TapGestureRecognizer()
-                              // ..onTap = () => _openUrl('https://yourapp.com/privacy'),
-                              ..onTap = () {},
                           ),
                           const TextSpan(text: '.'),
                         ],

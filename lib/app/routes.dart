@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:talkest/features/agreements/screen/privacy_policy_screen.dart';
+import 'package:talkest/features/agreements/screen/terms_of_service_screen.dart';
 import 'package:talkest/features/auth/data/auth_repository.dart';
 import 'package:talkest/features/auth/data/datasource/datasources.dart';
 import 'package:talkest/features/auth/screen/login_screen.dart';
@@ -20,7 +22,16 @@ GoRouter createRouter(AuthRepository authRepository) {
     initialLocation: '/login',
     redirect: (context, state) {
       final user = authRepository.currentUser;
-      final loggingIn = state.matchedLocation == '/login';
+
+      final publicPaths = [
+        '/login',
+        '/login/terms',
+        '/login/privacy',
+      ];
+
+      final isPublicPage = publicPaths.contains(state.matchedLocation);
+
+      final isAtLoginPage = state.matchedLocation == '/login';
 
       final isEmbed = state.uri.queryParameters['embed'] == '1';
 
@@ -28,7 +39,8 @@ GoRouter createRouter(AuthRepository authRepository) {
       debugPrint('Current user: ${user?.email ?? 'null'}');
       debugPrint('Current location: ${state.matchedLocation}');
       debugPrint('Full URI: ${state.uri}');
-      debugPrint('Logging in page: $loggingIn');
+      debugPrint('Is At Login Page: $isAtLoginPage');
+      debugPrint('Is Public Page: $isPublicPage');
 
       // Embed user not logged in, redirect to root landing page (preserves embed params)
       if (user == null && isEmbed && state.matchedLocation != '/') {
@@ -39,7 +51,7 @@ GoRouter createRouter(AuthRepository authRepository) {
       }
 
       // Non-embed user not authenticated
-      if (user == null && !loggingIn && !isEmbed) {
+      if (user == null && !isPublicPage && !isEmbed) {
         final currentPath = state.matchedLocation;
 
         // Non-content pages (profile, QR scanner, etc.) should not be preserved
@@ -60,7 +72,7 @@ GoRouter createRouter(AuthRepository authRepository) {
       }
 
       // Redirect to original URL after login (or default to /)
-      if (user != null && loggingIn) {
+      if (user != null && isAtLoginPage) {
         final redirect = state.uri.queryParameters['redirect'];
         if (redirect != null) {
           final decodedRedirect = Uri.decodeComponent(redirect);
@@ -84,6 +96,30 @@ GoRouter createRouter(AuthRepository authRepository) {
           state: state,
           child: const LoginScreen(),
         ),
+        routes: [
+          GoRoute(
+            name: 'terms_screen',
+            path: 'terms',
+            pageBuilder: (context, state) {
+              return CustomTransition.slideFade(
+                context: context,
+                state: state,
+                child: const TermsOfServiceScreen(),
+              );
+            },
+          ),
+          GoRoute(
+            name: 'privacy_screen',
+            path: 'privacy',
+            pageBuilder: (context, state) {
+              return CustomTransition.slideFade(
+                context: context,
+                state: state,
+                child: const PrivacyPolicyScreen(),
+              );
+            },
+          ),
+        ],
       ),
       GoRoute(
         name: 'root',
