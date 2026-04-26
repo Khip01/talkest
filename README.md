@@ -103,6 +103,8 @@ Just embed Talkest on your website, and anyone with a Google account can start a
 - Firebase project with Authentication and Cloud Firestore enabled
 - Google OAuth 2.0 Client ID (for Flutter Web only)
 
+---
+
 ### Firestore Structure
 
 Collections and documents are **created automatically** when the app runs for the first time — no manual setup needed. Below is the database structure for reference:
@@ -151,6 +153,8 @@ Collections and documents are **created automatically** when the app runs for th
                 └── replyToText: string (optional)
 ```
 
+---
+
 ### Firestore Security Rules
 
 Security rules are defined in [`firestore.rules`](firestore.rules).
@@ -164,6 +168,8 @@ Security rules are defined in [`firestore.rules`](firestore.rules).
 >
 > Review and adjust the rules in [`firestore.rules`](firestore.rules) to fit your needs before deploying.
 
+---
+
 ### Firestore Indexes
 
 This project requires a composite index for querying chats. The index configuration is defined in [`firestore.indexes.json`](firestore.indexes.json).
@@ -174,6 +180,8 @@ This project requires a composite index for querying chats. The index configurat
 
 > [!TIP]
 > If you skip deploying indexes, Firestore will show an error with a direct link to create the required index when the app first runs a query that needs it.
+
+---
 
 ### Deploying Firestore Rules & Indexes
 
@@ -192,6 +200,8 @@ firebase deploy --only firestore:indexes --project YOUR_PROJECT_ID
 
 > [!TIP]
 > If you skip this step, Firestore will show an error with a direct link to create the required index when the app first runs a query that needs it.
+
+---
 
 ### Getting OAuth 2.0 Client ID
 
@@ -214,57 +224,61 @@ firebase deploy --only firestore:indexes --project YOUR_PROJECT_ID
        - `https://your-domain.firebaseapp.com/__/auth/handler`
    - Copy the generated **Client ID**
 
-### Android Configuration & Google Sign-In
+---
 
-To run the Android app locally (`.debug` flavor) and ensure Google Sign-In works, you must configure your local debug SHA-1 fingerprint with your Firebase project.
+### Android & Google Sign-In (Local Debug)
 
-**1. Generate Local SHA-1 Fingerprint** \
-Navigate to the `android` directory and run the Gradle signing report command:
+To run the Android app locally (`.debug` flavor) and ensure Google Sign-In works, you must register your local **SHA-1** fingerprint with your Firebase project.
 
+#### 1. Generate SHA-1
+Run the following command in your terminal:
 ```bash
-cd android
-./gradlew signingReport
+cd android && ./gradlew signingReport
 ```
+> [!NOTE] 
+> Look for `Variant: debug` → `Config: debug` and copy the `SHA1` string.
 
-Look for the `SHA1` string under the `Variant: debug` and `Config: debug` section. This fingerprint is tied to your machine's local `debug.keystore` (typically located at `~/.android/debug.keystore` on Linux/macOS or `C:\Users\USERNAME\.android\debug.keystore` on Windows).
+#### 2. Firebase Configuration
+| Step                 | Action |
+|:---------------------| :--- |
+| **Register App**     | Add a new Android app in Firebase Console with package: `com.khip.talkest.debug`. |
+| **Add Fingerprints** | Paste the **SHA-1** & **SHA-256** into the Firebase Console for this debug app. |
+| **Sync File**        | Download the updated `google-services.json` and replace the one in `android/app/`. |
 
-**2. Register the Debug App in Firebase** \
-Go to your Firebase Console and add a new Android app. Use the debug package name specifically: `com.khip.talkest.debug`.
-
-**3. Add Fingerprints** \
-Paste the SHA-1 and SHA-256 fingerprints you obtained from the terminal into the Firebase Console for this debug app.
-
-**4. Download Configuration** \
-Download the updated `google-services.json` file from the Firebase Console. This file will now contain the crucial `client_type: 1` block with your local OAuth client ID.
-
-**5. Place the File** \
-Move the downloaded `google-services.json` into the `android/app/` directory of your cloned project, replacing any existing file.
-
-**6. Clean and Rebuild** \
-Run the following commands to ensure no cached configurations cause issues:
-
+#### 3. Clean & Run
+Reset the build cache to apply new configurations:
 ```bash
-flutter clean
-flutter pub get
-cd android && ./gradlew clean
-cd ..
-flutter run -d <device-id> --dart-define=SUPABASE_ANON_KEY=YOUR_SUPABASE_KEY
+flutter clean && flutter pub get
+cd android && ./gradlew clean && cd ..
+flutter run -d <device-id> --dart-define=VERCEL_API_URL=https://your-talkest-api.vercel.app
 ```
 
 ---
 
-### Push Notification Setup (Vercel Serverless Functions)
+### Push Notification Setup (Vercel)
 
-Talkest uses a lightweight Node.js Serverless Function deployed on Vercel to securely send FCM v1 payloads without exposing the Firebase Service Account on the client side.
+Talkest utilizes a **Node.js Serverless Function** deployed on Vercel as a secure proxy for FCM v1 delivery.
 
-1. **Clone the API:** Get the companion backend code from the [talkest-api repository](https://github.com/Khip01/talkest-api).
-2. **Firebase Service Account:** Generate a new Private Key from your Firebase Console (`Project Settings` -> `Service Accounts` -> `Generate new private key`).
-3. **Vercel Deployment:**
-    - Import the `talkest-api` repository to your [Vercel](https://vercel.com) dashboard.
-    - Go to the project's **Settings** → **Environment Variables**.
-    - Add a new variable named `FIREBASE_SERVICE_ACCOUNT` and paste the entire JSON content of your service account key.
-    - Deploy the project.
-4. **Link to Flutter:** Copy your Vercel domain (e.g., `https://talkest-api.vercel.app`) to use as the `--dart-define` argument when running or building the app.
+> **Security Note:**  \
+> To prevent credential leaks, Talkest uses a **Zero-Secret Architecture**. The client dynamically fetches a **Firebase ID Token** from the authenticated user and passes it as a `Bearer` token. The Vercel API verifies this token against Firebase Admin before executing the push request.
+
+#### 🛠️ Deployment Steps
+
+1. **Backend Repository:** Clone the [talkest-api repository](https://github.com/Khip01/talkest-api).
+2. **Firebase Private Key:** Go to `Project Settings` → `Service Accounts` → `Generate new private key` and download the JSON file.
+3. **Vercel Configuration:**
+
+   | Variable Name | Value |
+   | :--- | :--- |
+   | `FIREBASE_SERVICE_ACCOUNT` | *Paste the entire content of the downloaded JSON key* |
+
+#### 🔗 Linking to Flutter
+Pass your Vercel deployment URL during the build or run process:
+
+```bash
+flutter build apk --release \
+  --dart-define=VERCEL_API_URL=https://your-talkest-api.vercel.app
+```
 
 ---
 
@@ -308,6 +322,9 @@ flutter build apk --release \
 > [!IMPORTANT]
 > Mobile builds require the `VERCEL_API_URL` to successfully trigger push notifications.
 
+
+---
+
 ### Embed Mode
 
 Talkest supports an embedded chat widget mode, designed to be loaded inside an `<iframe>` on any website. This allows visitors to chat with a specific user directly from your page.
@@ -344,6 +361,8 @@ In embed mode, the app will:
 - Show a landing page with a sign-in prompt for unauthenticated visitors
 - Automatically open a direct chat with the target user after sign-in
 - Hide navigation elements like the FAB and profile access for a clean widget experience
+
+---
 
 ## 📚 Resources
 
