@@ -44,3 +44,4 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 *.env
+.legacy_api/index_reference.ts
