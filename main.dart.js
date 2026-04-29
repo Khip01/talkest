@@ -109836,7 +109836,7 @@ return A.p(n.a.kO(!1),$async$vC)
 case 7:m=a2
 if(m==null){A.cP().$1("[NotificationService] WARNING: Failed to get ID Token.")
 s=1
-break}l=A.dS("https://talkest-api.vercel.app/api/send-notification",0,null)
+break}l=A.dS("https://talkest-api.vercel.app//api/send-notification",0,null)
 h=t.N
 f=A.af(["Content-Type","application/json","Authorization","Bearer "+m],h,h)
 k=A.n(h,t.K)
