@@ -81,7 +81,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(8),
+            topRight: Radius.circular(8),
+            bottomLeft: Radius.zero,
+            bottomRight: Radius.zero,
+          ),
+        ),
         // disable autofocus after closing bottom sheet
         enableDrag: true,
         isDismissible: true,

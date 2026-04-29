@@ -115,7 +115,14 @@ class _StartChatBottomSheetState extends State<StartChatBottomSheet> {
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(8),
+            topRight: Radius.circular(8),
+            bottomLeft: Radius.zero,
+            bottomRight: Radius.zero,
+          ),
+        ),
         enableDrag: true,
         isDismissible: true,
         builder: (_) => BlocProvider(
